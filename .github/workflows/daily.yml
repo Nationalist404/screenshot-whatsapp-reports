@@ -1,0 +1,35 @@
+name: Daily Screenshot Summary
+
+on:
+  schedule:
+    # 19:55 UTC = 00:55 Asia/Karachi (adjust if you want another time)
+    - cron: "55 19 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  build-and-send:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run daily report
+        env:
+          SCREENSHOTMONITOR_API_KEY: ${{ secrets.SCREENSHOTMONITOR_API_KEY }}
+          WHATSAPP_TOKEN: ${{ secrets.WHATSAPP_TOKEN }}
+          WHATSAPP_PHONE_NUMBER_ID: ${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
+          WHATSAPP_TARGET_PHONE: ${{ secrets.WHATSAPP_TARGET_PHONE }}
+        run: python report.py
