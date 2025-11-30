@@ -8,10 +8,9 @@ import requests
 
 # Base URL for the API. Most of their endpoints look like /api/v2/Whatever,
 # so base = https://screenshotmonitor.com should work.
-API_BASE = "https://screenshotmonitor.com"
+API_BASE = "https://screenshotmonitor.com/api/v2"
 
-COMPANY_KEY = os.environ["SCREENSHOTMONITOR_COMPANY_KEY"]
-API_KEY = os.environ["SCREENSHOTMONITOR_API_KEY"]
+SSM_TOKEN = os.environ["SSM_TOKEN"]
 
 
 def api_get(path: str, params: dict | None = None):
@@ -72,7 +71,7 @@ def main():
     # Then plug them into the call below.
 
     # === EDIT HERE: set the endpoint path from your docs ===
-    TEST_ENDPOINT = "/api/v2/GetCommonData"  # <-- replace with a real one from docs
+    TEST_ENDPOINT = "/GetCommonData"  # <-- replace with a real one from docs
 
     # === EDIT HERE: match the parameter names from docs ===
     params = {
