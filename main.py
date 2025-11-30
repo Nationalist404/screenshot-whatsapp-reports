@@ -31,7 +31,13 @@ def api_get(path: str, params: dict | None = None):
 
     resp = requests.get(url, headers=headers, params=params, timeout=60)
     print(f"Status code: {resp.status_code}")
-    resp.raise_for_status()
+
+    # 🔴 Instead of raising immediately, dump the body for debugging
+    if resp.status_code >= 400:
+        print("=== ERROR RESPONSE BODY (first 1000 chars) ===")
+        print(resp.text[:1000])
+        # Still raise so the workflow is marked as failed
+        resp.raise_for_status()
 
     try:
         return resp.json()
@@ -39,7 +45,6 @@ def api_get(path: str, params: dict | None = None):
         print("Response is not JSON. Raw text:")
         print(resp.text[:1000])
         raise
-
 
 def main():
     today = dt.date.today()
