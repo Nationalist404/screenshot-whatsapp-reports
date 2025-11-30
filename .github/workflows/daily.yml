@@ -2,9 +2,8 @@ name: Daily test run
 
 on:
   schedule:
-    # runs every day at 16:00 UTC (21:00 in Pakistan, UTC+5)
-    - cron: "0 16 * * *"
-  workflow_dispatch: {}  # lets you run it manually from GitHub UI
+    - cron: "0 16 * * *"  # 21:00 Pakistan
+  workflow_dispatch: {}
 
 jobs:
   run-script:
@@ -23,4 +22,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run script
+        env:
+          SCREENSHOTMONITOR_COMPANY_KEY: ${{ secrets.SCREENSHOTMONITOR_COMPANY_KEY }}
+          SCREENSHOTMONITOR_API_KEY: ${{ secrets.SCREENSHOTMONITOR_API_KEY }}
         run: python main.py
