@@ -23,6 +23,5 @@ jobs:
 
       - name: Run script
         env:
-          SCREENSHOTMONITOR_COMPANY_KEY: ${{ secrets.SCREENSHOTMONITOR_COMPANY_KEY }}
-          SCREENSHOTMONITOR_API_KEY: ${{ secrets.SCREENSHOTMONITOR_API_KEY }}
+          SSM_TOKEN: ${{ secrets.SSM_TOKEN }}
         run: python main.py
