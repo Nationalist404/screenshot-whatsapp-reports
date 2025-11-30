@@ -1,0 +1,26 @@
+name: Daily test run
+
+on:
+  schedule:
+    # runs every day at 16:00 UTC (21:00 in Pakistan, UTC+5)
+    - cron: "0 16 * * *"
+  workflow_dispatch: {}  # lets you run it manually from GitHub UI
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Run script
+        run: python main.py
