@@ -7,7 +7,7 @@ from pathlib import Path
 import requests
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
-from moviepy.editor import ImageSequenceClip
+import imageio.v2 as imageio
 
 # ---- CONFIG ----
 
@@ -186,12 +186,12 @@ def build_annotated_video(
     activity_by_id: dict[str, dict],
     target_width: int = 1280,   # 1280 ≈ 1K; use 1920 for ~2K
     max_frames: int | None = 60,
-    fps: int = 1,               # 1 frame/sec; adjust to taste
+    fps: int = 2,               # frames per second in the final video
 ):
     """
     Download screenshot images at full quality (url), downscale to target_width,
-    burn in annotations (name, time, activity, app, note), and build an MP4 video.
-    Returns the output Path or None if no frames.
+    burn in annotations (name, time, activity, app, note), and build an MP4 video
+    using imageio + ffmpeg. Returns the output Path or None if no frames.
     """
     if not screenshots:
         print("No screenshots to build video from.")
@@ -250,7 +250,7 @@ def build_annotated_video(
             # Burn text overlay
             annotate_frame(img, employee_name, time_str, note, activity_level, app_name)
 
-            # Convert to numpy array for MoviePy
+            # Convert to numpy array for imageio
             frames.append(np.array(img))
 
         except Exception as e:
@@ -263,17 +263,13 @@ def build_annotated_video(
     out_path = OUTPUT_DIR / f"{employment_id}_{day.isoformat()}.mp4"
     print(f"Saving video to {out_path} with {len(frames)} frames at {fps} fps")
 
-    clip = ImageSequenceClip(frames, fps=fps)
-    # codec 'libx264' is widely supported; no audio
-    clip.write_videofile(
-        str(out_path),
-        codec="libx264",
-        audio=False,
-        verbose=True,
-        logger=None,
-    )
+    # imageio will internally use its ffmpeg plugin
+    with imageio.get_writer(str(out_path), fps=fps, codec="libx264") as writer:
+        for frame in frames:
+            writer.append_data(frame)
 
     return out_path
+
 
 
 # ---------- MAIN ----------
