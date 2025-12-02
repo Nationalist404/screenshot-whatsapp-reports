@@ -375,7 +375,7 @@ def run_once():
 
             # START notification (seen for first time)
             if not sess_state["notified_start"]:
-                msg = f"▶ {name} started \"{note}\" at {format_pkt_time(start_ts)} (PKT)"
+                msg = f"▶ {name} STARTED \"{note}\" at {format_pkt_time(start_ts)} (PKT)"
                 print("Sending START:", msg)
                 whatsapp_send_text(msg)
                 sess_state["notified_start"] = True
@@ -394,7 +394,7 @@ def run_once():
                         st = format_pkt_time(start_ts)
                         en = format_pkt_time(end_ts)
                         caption = (
-                            f"⏹ {name} · \"{note}\"\n"
+                            f"⏹ {name} STOPPED · \"{note}\"\n"
                             f"{st} – {en} PKT ({dur_str}). "
                             f"{frame_count} screenshots."
                         )
@@ -404,7 +404,7 @@ def run_once():
                     else:
                         # fallback text
                         msg = (
-                            f"⏹ {name} finished \"{note}\" "
+                            f"⏹ {name} FINISHED without Screenshots \"{note}\" "
                             f"{format_duration(duration)} "
                             f"({format_pkt_time(start_ts)}–{format_pkt_time(end_ts)} PKT)"
                         )
