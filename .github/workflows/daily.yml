@@ -26,10 +26,10 @@ jobs:
           SSM_TOKEN: ${{ secrets.SSM_TOKEN }}
         run: python main.py
 
-      - name: Upload GIF artifact
+      - name: Upload Video artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: screenshot-gifs
+          name: screenshot-video
           path: out
           if-no-files-found: ignore
