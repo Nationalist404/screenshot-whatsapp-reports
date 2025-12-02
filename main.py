@@ -14,22 +14,21 @@ import imageio.v2 as imageio
 API_BASE = "https://screenshotmonitor.com/api/v2"
 SSM_TOKEN = os.environ["SSM_TOKEN"]
 
-# Map employmentId -> employee name (add more IDs here later)
-EMPLOYMENTS = {
-    433687: "VOID",   # <--- change/add as needed
-}
-
 OUTPUT_DIR = Path("out")
+
+# If you ever want to limit to certain employments, put their IDs here:
+# e.g. EMPLOYMENT_FILTER = {433687, 123456}
+EMPLOYMENT_FILTER: set[int] | None = None
 
 # ---- CONFIG: WhatsApp Cloud API (from GitHub secrets) ----
 
 WHATSAPP_PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID")
 WHATSAPP_TOKEN = os.environ.get("WHATSAPP_TOKEN")
 WHATSAPP_TO_NUMBER = os.environ.get("WHATSAPP_TO_NUMBER")
-WHATSAPP_BASE = "https://graph.facebook.com/v22.0"  # adjust version if Meta UI shows different
+WHATSAPP_BASE = "https://graph.facebook.com/v21.0"  # adjust version if needed
 
 
-# ---------- HTTP HELPER FOR SCREENSHOTMONITOR ----------
+# ---------- HTTP HELPERS FOR SCREENSHOTMONITOR ----------
 
 def api_post(path: str, body):
     url = f"{API_BASE}{path}"
@@ -58,6 +57,19 @@ def api_post(path: str, body):
         raise
 
 
+def api_get(path: str, params=None):
+    """Simple GET helper for /GetCommonData."""
+    url = f"{API_BASE}{path}"
+    headers = {"X-SSM-Token": SSM_TOKEN}
+    resp = requests.get(url, headers=headers, params=params or {}, timeout=60)
+    print(f"GET {url} -> {resp.status_code}")
+    if resp.status_code >= 400:
+        print("=== ERROR RESPONSE BODY (first 1000 chars) ===")
+        print(resp.text[:1000])
+        resp.raise_for_status()
+    return resp.json()
+
+
 # ---------- TIME HELPERS ----------
 
 def to_unix_seconds(dt_obj: dt.datetime) -> int:
@@ -80,6 +92,66 @@ def get_yesterday_range_utc():
 def format_utc_timestamp(ts: int) -> str:
     """Convert unix seconds to readable UTC time string."""
     return dt.datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d %H:%M")
+
+
+# ---------- EMPLOYMENTS (ALL EMPLOYEES) ----------
+
+def fetch_all_employments() -> dict[int, str]:
+    """
+    Calls /GetCommonData and builds a dict {employmentId: human_name}.
+    """
+    try:
+        data = api_get("/GetCommonData")
+    except Exception as e:
+        print(f"Failed to fetch common data: {e}")
+        return {}
+
+    employments_raw = data.get("employments") or data.get("Employments") or []
+    employees_raw = data.get("employees") or data.get("Employees") or []
+
+    employees_by_id = {}
+    for emp in employees_raw:
+        emp_id = emp.get("id") or emp.get("employeeId")
+        if not emp_id:
+            continue
+        first = emp.get("firstName") or ""
+        last = emp.get("lastName") or ""
+        name = (first + " " + last).strip() or emp.get("name") or f"Employee {emp_id}"
+        employees_by_id[emp_id] = name
+
+    employment_map: dict[int, str] = {}
+    for e in employments_raw:
+        eid = e.get("id") or e.get("employmentId")
+        if not eid:
+            continue
+
+        # Try several possible name fields
+        name = (
+            e.get("name")
+            or e.get("employmentName")
+            or e.get("employeeName")
+            or ""
+        )
+
+        emp_id = e.get("employeeId")
+        if not name and emp_id in employees_by_id:
+            name = employees_by_id[emp_id]
+
+        if not name:
+            name = f"Employment {eid}"
+
+        employment_map[int(eid)] = name
+
+    print(f"Discovered {len(employment_map)} employments:")
+    for eid, name in employment_map.items():
+        print(f"  {eid}: {name}")
+
+    # Optionally filter
+    if EMPLOYMENT_FILTER:
+        employment_map = {eid: name for eid, name in employment_map.items() if eid in EMPLOYMENT_FILTER}
+        print(f"After applying EMPLOYMENT_FILTER, {len(employment_map)} remain.")
+
+    return employment_map
 
 
 # ---------- SCREENSHOTMONITOR BUSINESS LOGIC ----------
@@ -121,6 +193,24 @@ def fetch_screenshots_for_activities(activity_ids: list[str]):
 
 # ---------- DRAWING / VIDEO BUILDING ----------
 
+def get_overlay_font(size: int = 22) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    """
+    Try to load a bigger TrueType font; fall back to default if not available.
+    """
+    candidates = [
+        "DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+    ]
+    for path in candidates:
+        try:
+            return ImageFont.truetype(path, size)
+        except Exception:
+            continue
+    # Fallback
+    return ImageFont.load_default()
+
+
 def annotate_frame(
     img: Image.Image,
     employee_name: str,
@@ -136,7 +226,7 @@ def annotate_frame(
       line 3: note
     """
     draw = ImageDraw.Draw(img)
-    font = ImageFont.load_default()
+    font = get_overlay_font(size=22)  # <--- bigger font now
 
     if activity_level is None:
         activity_level = 0
@@ -180,7 +270,7 @@ def build_annotated_video(
     day: dt.date,
     screenshots: list,
     activity_by_id: dict[str, dict],
-    target_width: int = 1280,   # 1280 ≈ 1K; use 1920 for ~2K
+    target_width: int = 1280,
     max_frames: int | None = 60,
     fps: int = 2,
 ):
@@ -235,7 +325,6 @@ def build_annotated_video(
                 print(f"Resized {shot_id} from {w}x{h} to {new_size[0]}x{new_size[1]}")
 
             annotate_frame(img, employee_name, time_str, note, activity_level, app_name)
-
             frames.append(np.array(img))
 
         except Exception as e:
@@ -343,15 +432,19 @@ def main():
     print(f"From (unix): {from_ts}")
     print(f"To   (unix): {to_ts}")
 
-    # DEBUG: check that all WhatsApp env vars are present
     print(
         "WhatsApp env present?:",
         bool(WHATSAPP_PHONE_NUMBER_ID),
         bool(WHATSAPP_TOKEN),
         bool(WHATSAPP_TO_NUMBER),
     )
-    
-    for employment_id, employee_name in EMPLOYMENTS.items():
+
+    employment_map = fetch_all_employments()
+    if not employment_map:
+        print("No employments found – aborting.")
+        return
+
+    for employment_id, employee_name in employment_map.items():
         print(f"\n=== Processing employmentId {employment_id} ({employee_name}) ===")
 
         activities = fetch_activities_for_employment(employment_id, from_ts, to_ts)
@@ -382,7 +475,7 @@ def main():
             day,
             screenshots,
             activity_by_id,
-            target_width=1280,   # or 1920
+            target_width=1280,
             max_frames=120,
             fps=2,
         )
