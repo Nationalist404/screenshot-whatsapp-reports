@@ -104,6 +104,27 @@ def format_utc_timestamp(ts: int) -> str:
     """Convert unix seconds to readable UTC time string."""
     return dt.datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d %H:%M")
 
+# ---- TIMEZONE & DURATION HELPERS (PKT) ----
+PKT = dt.timezone(dt.timedelta(hours=5))  # UTC+5
+
+def ts_to_pkt(ts: int) -> dt.datetime:
+    """Convert unix seconds to a datetime in PKT."""
+    dt_utc = dt.datetime.utcfromtimestamp(ts).replace(tzinfo=dt.timezone.utc)
+    return dt_utc.astimezone(PKT)
+
+def format_pkt_time(ts: int) -> str:
+    """Return 12-hour time in PKT, e.g. 11:37 AM."""
+    return ts_to_pkt(ts).strftime("%I:%M %p")
+
+def format_duration(seconds: int) -> str:
+    """Return duration like '2h 05m' or '25m'."""
+    seconds = max(0, int(seconds))
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    if hours > 0:
+        return f"{hours}h {minutes:02d}m"
+    else:
+        return f"{minutes}m"
 
 # ---------- EMPLOYMENTS (ALL EMPLOYEES) ----------
 
@@ -442,6 +463,155 @@ def whatsapp_send_video(media_id: str, caption: str):
         print(resp.text)
 
 
+def whatsapp_send_text(message: str):
+    """
+    Send a plain text WhatsApp message (used when there is no video
+    or when an employee has no activity on a given day).
+    """
+    if not (WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_TOKEN and WHATSAPP_TO_NUMBER):
+        print("WhatsApp env vars not fully set, skipping text send.")
+        return
+
+    url = f"{WHATSAPP_BASE}/{WHATSAPP_PHONE_NUMBER_ID}/messages"
+    headers = {
+        "Authorization": f"Bearer {WHATSAPP_TOKEN}",
+        "Content-Type": "application/json",
+    }
+
+    body = {
+        "messaging_product": "whatsapp",
+        "to": WHATSAPP_TO_NUMBER,
+        "type": "text",
+        "text": {
+            "preview_url": False,
+            "body": message,
+        },
+    }
+
+    print(f"Sending WhatsApp TEXT to {WHATSAPP_TO_NUMBER}")
+    resp = requests.post(url, headers=headers, json=body, timeout=60)
+    print(f"WhatsApp text send status: {resp.status_code}")
+    if resp.status_code >= 400:
+        print("Text send error body:")
+        print(resp.text)
+
+
+def build_activity_summary(
+    employee_name: str,
+    day: dt.date,
+    activities: list[dict],
+    screenshots: list[dict],
+) -> str:
+    """
+    Build a human-readable daily summary for WhatsApp:
+    - PKT 12h times
+    - grouped by note
+    - session start/end, duration, avg activity
+    """
+
+    if not activities:
+        # No work at all for this person today
+        return f"No tracked activity for {employee_name} on {day.isoformat()}."
+
+    # Index screenshot activity levels by activityId -> avg
+    level_index: dict[str, dict] = {}
+    for s in screenshots:
+        aid = s.get("activityId")
+        lvl = s.get("activityLevel")
+        if aid is None or lvl is None:
+            continue
+        bucket = level_index.setdefault(aid, {"sum": 0, "count": 0})
+        bucket["sum"] += lvl
+        bucket["count"] += 1
+
+    # Group sessions by note
+    sessions_by_note: dict[str, list[dict]] = {}
+    earliest = None
+    latest = None
+    total_duration = 0
+
+    for a in activities:
+        aid = a.get("activityId")
+        start = a.get("from")
+        end = a.get("to")
+        note = (a.get("note") or "").strip() or "(no note)"
+
+        if start is None or end is None:
+            continue
+
+        dur = max(0, end - start)
+        total_duration += dur
+
+        if earliest is None or start < earliest:
+            earliest = start
+        if latest is None or end > latest:
+            latest = end
+
+        # Average activity level for this session (from screenshots)
+        avg_level = None
+        stats = level_index.get(aid)
+        if stats and stats["count"] > 0:
+            avg_level = round(stats["sum"] / stats["count"])
+
+        session = {
+            "start": start,
+            "end": end,
+            "duration": dur,
+            "avg_level": avg_level,
+        }
+        sessions_by_note.setdefault(note, []).append(session)
+
+    lines: list[str] = []
+
+    # Header line
+    lines.append(f"{employee_name} — {day.isoformat()} (PKT)")
+
+    # Overall daily range + total time
+    if earliest is not None and latest is not None:
+        lines.append(
+            f"Overall: {len(activities)} session(s), "
+            f"{format_pkt_time(earliest)}–{format_pkt_time(latest)}, "
+            f"total {format_duration(total_duration)}."
+        )
+
+    # To keep caption reasonably short, cap detailed lines:
+    MAX_SESSION_LINES = 12
+    printed_sessions = 0
+    total_sessions = len(activities)
+
+    # Per-note breakdown
+    for note, sessions in sessions_by_note.items():
+        sessions_sorted = sorted(sessions, key=lambda s: s["start"])
+        note_duration = sum(s["duration"] for s in sessions_sorted)
+
+        lines.append(
+            f"\n{note}: {len(sessions_sorted)} session(s), "
+            f"{format_duration(note_duration)} total."
+        )
+
+        for idx, s in enumerate(sessions_sorted, start=1):
+            if printed_sessions >= MAX_SESSION_LINES:
+                break
+
+            start_str = format_pkt_time(s["start"])
+            end_str = format_pkt_time(s["end"])
+            dur_str = format_duration(s["duration"])
+            if s["avg_level"] is not None:
+                level_part = f", avg activity {s['avg_level']}%"
+            else:
+                level_part = ""
+
+            lines.append(
+                f"{idx}) {start_str}–{end_str} ({dur_str}{level_part})"
+            )
+            printed_sessions += 1
+
+    if printed_sessions < total_sessions:
+        remaining = total_sessions - printed_sessions
+        lines.append(f"... plus {remaining} more session(s).")
+
+    return "\n".join(lines)
+
 # ---------- MAIN ----------
 
 def main():
@@ -468,8 +638,16 @@ def main():
         activities = fetch_activities_for_employment(employment_id, from_ts, to_ts)
         print(f"Total activities returned: {len(activities)}")
 
+        # If NO activity at all: send "did not work" message and skip
+        if not activities:
+            print("No activities for this employment.")
+            summary = build_activity_summary(employee_name, day, activities, [])
+            whatsapp_send_text(summary)
+            continue
+
         print("\nActivities preview (first 2):")
         print(json.dumps(activities[:2], indent=2, default=str))
+
 
         activity_ids = [a["activityId"] for a in activities if "activityId" in a]
         if not activity_ids:
@@ -498,23 +676,54 @@ def main():
             fps=2,
         )
 
+        # Build the detailed PKT summary for this person & day
+        summary = build_activity_summary(employee_name, day, activities, screenshots)
+
         if video_path:
             print(f"✅ Video created for {employee_name}: {video_path}")
 
-            total_activities = len(activities)
-            total_screens = len(screenshots)
-            caption = (
-                f"Daily activity for {employee_name} on {day.isoformat()} — "
-                f"{total_activities} activities, {total_screens} screenshots."
-            )
+            media_id = whatsapp_upload_media(video_path)
+            if media_id:
+                # Send video with detailed summary as caption
+                whatsapp_send_video(media_id, summary)
+            else:
+                print("Skipping WhatsApp video send because upload failed.")
+                # At least send the text summary
+                whatsapp_send_text(summary)
+        else:
+            print(f"⚠️ No video created for {employee_name}. Sending text summary only.")
+            whatsapp_send_text(summary)
+        activity_by_id = {a["activityId"]: a for a in activities if "activityId" in a}
+
+        video_path = build_annotated_video(
+            employment_id,
+            employee_name,
+            day,
+            screenshots,
+            activity_by_id,
+            target_width=1280,
+            max_frames=700,
+            fps=2,
+        )
+
+        # Build the detailed PKT summary for this person & day
+        summary = build_activity_summary(employee_name, day, activities, screenshots)
+
+        if video_path:
+            print(f"✅ Video created for {employee_name}: {video_path}")
 
             media_id = whatsapp_upload_media(video_path)
             if media_id:
-                whatsapp_send_video(media_id, caption)
+                # Send video with detailed summary as caption
+                whatsapp_send_video(media_id, summary)
             else:
-                print("Skipping WhatsApp send because upload failed.")
+                print("Skipping WhatsApp video send because upload failed.")
+                # At least send the text summary
+                whatsapp_send_text(summary)
         else:
-            print(f"⚠️ No video created for {employee_name}.")
+            print(f"⚠️ No video created for {employee_name}. Sending text summary only.")
+            whatsapp_send_text(summary)
+
 
 
 if __name__ == "__main__":
