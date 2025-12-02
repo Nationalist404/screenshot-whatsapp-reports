@@ -23,7 +23,8 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install requests pillow imageio numpy
+          pip install requests pillow "imageio[ffmpeg]" numpy
+
 
       - name: Run session monitor once
         env:
