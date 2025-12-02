@@ -28,6 +28,17 @@ WHATSAPP_TO_NUMBER = os.environ.get("WHATSAPP_TO_NUMBER")
 WHATSAPP_BASE = "https://graph.facebook.com/v21.0"  # adjust version if needed
 
 
+
+# ---- MANUAL EMPLOYMENTS FALLBACK ----
+# Use employmentId -> display name.
+# You already know 433687 ("VOID" / you).
+EMPLOYMENTS_MANUAL: dict[int, str] = {
+    433687: "VOID",          # Qasim - Southern Energy
+    433688: "Sufyan",
+    # 123457: "Ahmed",
+    # Add more as you hire them
+}
+
 # ---------- HTTP HELPERS FOR SCREENSHOTMONITOR ----------
 
 def api_post(path: str, body):
@@ -98,60 +109,67 @@ def format_utc_timestamp(ts: int) -> str:
 
 def fetch_all_employments() -> dict[int, str]:
     """
-    Calls /GetCommonData and builds a dict {employmentId: human_name}.
+    Try to call /GetCommonData and build {employmentId: human_name}.
+    If that fails (500 etc), fall back to EMPLOYMENTS_MANUAL.
     """
     try:
         data = api_get("/GetCommonData")
+        employments_raw = data.get("employments") or data.get("Employments") or []
+        employees_raw = data.get("employees") or data.get("Employees") or []
+
+        employees_by_id = {}
+        for emp in employees_raw:
+            emp_id = emp.get("id") or emp.get("employeeId")
+            if not emp_id:
+                continue
+            first = emp.get("firstName") or ""
+            last = emp.get("lastName") or ""
+            name = (first + " " + last).strip() or emp.get("name") or f"Employee {emp_id}"
+            employees_by_id[emp_id] = name
+
+        employment_map: dict[int, str] = {}
+        for e in employments_raw:
+            eid = e.get("id") or e.get("employmentId")
+            if not eid:
+                continue
+
+            name = (
+                e.get("name")
+                or e.get("employmentName")
+                or e.get("employeeName")
+                or ""
+            )
+
+            emp_id = e.get("employeeId")
+            if not name and emp_id in employees_by_id:
+                name = employees_by_id[emp_id]
+
+            if not name:
+                name = f"Employment {eid}"
+
+            employment_map[int(eid)] = name
+
+        if employment_map:
+            print(f"Discovered {len(employment_map)} employments from GetCommonData:")
+            for eid, name in employment_map.items():
+                print(f"  {eid}: {name}")
+            return employment_map
+
+        print("GetCommonData returned no employments, will try manual fallback...")
+
     except Exception as e:
         print(f"Failed to fetch common data: {e}")
-        return {}
 
-    employments_raw = data.get("employments") or data.get("Employments") or []
-    employees_raw = data.get("employees") or data.get("Employees") or []
+    # ---- Fallback to manual list ----
+    if EMPLOYMENTS_MANUAL:
+        print("Falling back to EMPLOYMENTS_MANUAL mapping:")
+        for eid, name in EMPLOYMENTS_MANUAL.items():
+            print(f"  {eid}: {name}")
+        return EMPLOYMENTS_MANUAL.copy()
 
-    employees_by_id = {}
-    for emp in employees_raw:
-        emp_id = emp.get("id") or emp.get("employeeId")
-        if not emp_id:
-            continue
-        first = emp.get("firstName") or ""
-        last = emp.get("lastName") or ""
-        name = (first + " " + last).strip() or emp.get("name") or f"Employee {emp_id}"
-        employees_by_id[emp_id] = name
+    print("No employments available (API failed and EMPLOYMENTS_MANUAL is empty).")
+    return {}
 
-    employment_map: dict[int, str] = {}
-    for e in employments_raw:
-        eid = e.get("id") or e.get("employmentId")
-        if not eid:
-            continue
-
-        # Try several possible name fields
-        name = (
-            e.get("name")
-            or e.get("employmentName")
-            or e.get("employeeName")
-            or ""
-        )
-
-        emp_id = e.get("employeeId")
-        if not name and emp_id in employees_by_id:
-            name = employees_by_id[emp_id]
-
-        if not name:
-            name = f"Employment {eid}"
-
-        employment_map[int(eid)] = name
-
-    print(f"Discovered {len(employment_map)} employments:")
-    for eid, name in employment_map.items():
-        print(f"  {eid}: {name}")
-
-    # Optionally filter
-    if EMPLOYMENT_FILTER:
-        employment_map = {eid: name for eid, name in employment_map.items() if eid in EMPLOYMENT_FILTER}
-        print(f"After applying EMPLOYMENT_FILTER, {len(employment_map)} remain.")
-
-    return employment_map
 
 
 # ---------- SCREENSHOTMONITOR BUSINESS LOGIC ----------
