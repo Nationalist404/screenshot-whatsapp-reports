@@ -22,7 +22,7 @@ WHATSAPP_BASE = "https://graph.facebook.com/v21.0"
 # employmentId -> display name
 EMPLOYMENTS = {
     433687: "VOID",
-    433688: "Sufyan",# you; add others like 123456: "Ali"
+    433688: "Sufyan",  # you; add others like 123456: "Ali"
 }
 
 STATE_FILE = Path("session_state.json")
@@ -33,12 +33,19 @@ PKT = dt.timezone(dt.timedelta(hours=5))  # Pakistan time
 
 # ---------- TIME HELPERS ----------
 
+def utc_now_ts() -> int:
+    """Current UTC timestamp (int seconds)."""
+    return int(dt.datetime.now(dt.timezone.utc).timestamp())
+
+
 def ts_to_pkt(ts: int) -> dt.datetime:
     dt_utc = dt.datetime.utcfromtimestamp(ts).replace(tzinfo=dt.timezone.utc)
     return dt_utc.astimezone(PKT)
 
+
 def format_pkt_time(ts: int) -> str:
     return ts_to_pkt(ts).strftime("%I:%M %p")  # 12-hour, e.g. 11:05 AM
+
 
 def format_duration(seconds: int) -> str:
     seconds = max(0, int(seconds))
@@ -60,6 +67,7 @@ def load_state():
         except Exception:
             pass
     return {"sessions": {}}  # {employmentId_str: {activityId: {flags...}}}
+
 
 def save_state(state):
     with STATE_FILE.open("w", encoding="utf-8") as f:
@@ -83,14 +91,21 @@ def api_post(path: str, body):
         resp.raise_for_status()
     return resp.json()
 
+
 def fetch_activities_for_today(employment_id: int):
     """
     Get today's activities (UTC day) for this employment.
     We only care about 'has this session started/ended yet'.
     """
     now_utc = dt.datetime.now(dt.timezone.utc)
-    sod = dt.datetime(now_utc.year, now_utc.month, now_utc.day,
-                      0, 0, tzinfo=dt.timezone.utc)
+    sod = dt.datetime(
+        now_utc.year,
+        now_utc.month,
+        now_utc.day,
+        0,
+        0,
+        tzinfo=dt.timezone.utc,
+    )
     from_ts = int(sod.timestamp())
     to_ts = int(now_utc.timestamp()) + 600  # small cushion
 
@@ -104,6 +119,7 @@ def fetch_activities_for_today(employment_id: int):
         print("Unexpected GetActivities response:", data)
         return []
     return data
+
 
 def fetch_screenshots_for_activity(activity_id: str):
     body = [activity_id]
@@ -128,6 +144,7 @@ def get_font(size: int = 22):
         except Exception:
             continue
     return ImageFont.load_default()
+
 
 def annotate_frame(img, employee_name, note, screenshot):
     """
@@ -158,8 +175,8 @@ def annotate_frame(img, employee_name, note, screenshot):
             apps,
             key=lambda a: (
                 bool(a.get("fromScreen")),
-                a.get("duration", 0)
-            )
+                a.get("duration", 0),
+            ),
         ).get("applicationName")
 
     # Line 2: Activity + App
@@ -191,14 +208,20 @@ def annotate_frame(img, employee_name, note, screenshot):
     # Background box
     draw.rectangle(
         (x - 6, y - 4, x + tw + 6, y + th + 4),
-        fill=(0, 0, 0)
+        fill=(0, 0, 0),
     )
     # Text
     draw.multiline_text((x, y), text, font=font, fill=(255, 255, 255))
 
 
-def build_session_video(employee_name, note, activity, screenshots,
-                        target_width=1280, fps=2):
+def build_session_video(
+    employee_name,
+    note,
+    activity,
+    screenshots,
+    target_width=1280,
+    fps=2,
+):
     """Build a video for a single ScreenshotMonitor activity."""
 
     if not screenshots:
@@ -208,7 +231,8 @@ def build_session_video(employee_name, note, activity, screenshots,
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     start_ts = activity["from"]
-    end_ts = activity["to"] or start_ts
+    # NOTE: 'to' is used only for naming / stats, not for message timestamp
+    end_ts = activity.get("to") or start_ts
 
     # Average activity level for this session
     levels = [
@@ -220,7 +244,7 @@ def build_session_video(employee_name, note, activity, screenshots,
 
     screenshots_sorted = sorted(
         screenshots,
-        key=lambda s: s.get("taken", 0)
+        key=lambda s: s.get("taken", 0),
     )
 
     frames = []
@@ -229,29 +253,27 @@ def build_session_video(employee_name, note, activity, screenshots,
         shot_id = s.get("id")
         if not url:
             continue
-    
+
         try:
             r = requests.get(url, timeout=120)
             r.raise_for_status()
-    
-            from PIL import Image  # or keep this import at top of file
+
             img = Image.open(BytesIO(r.content)).convert("RGB")
-    
+
             w, h = img.size
             if w > target_width:
                 scale = target_width / float(w)
                 img = img.resize(
                     (target_width, int(h * scale)),
-                    Image.LANCZOS
+                    Image.LANCZOS,
                 )
-    
-            # NEW: annotate per screenshot with detailed overlay
+
+            # annotate per screenshot with detailed overlay
             annotate_frame(img, employee_name, note, s)
             frames.append(np.array(img))
-    
+
         except Exception as e:
             print(f"Failed to process screenshot {shot_id}: {e}")
-
 
     if not frames:
         print("No frames after processing.")
@@ -260,7 +282,6 @@ def build_session_video(employee_name, note, activity, screenshots,
     day_str = ts_to_pkt(start_ts).date().isoformat()
     out_path = OUTPUT_DIR / f"{employee_name}_{day_str}_{activity['activityId']}.mp4"
 
-    # ---- this is the part we changed with try/except ----
     try:
         writer = imageio.get_writer(
             str(out_path),
@@ -277,7 +298,6 @@ def build_session_video(employee_name, note, activity, screenshots,
             writer.append_data(frame)
 
     return out_path, avg_level, len(frames)
-
 
 
 # ---------- WHATSAPP HELPERS ----------
@@ -302,6 +322,7 @@ def whatsapp_send_text(message: str):
     if resp.status_code >= 400:
         print(resp.text[:500])
 
+
 def whatsapp_upload_media(video_path: Path) -> str | None:
     if not (WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_TOKEN):
         print("WhatsApp env missing, can't upload media.")
@@ -314,13 +335,13 @@ def whatsapp_upload_media(video_path: Path) -> str | None:
     with video_path.open("rb") as f:
         files = {"file": (video_path.name, f, "video/mp4")}
         data = {"type": "video/mp4", "messaging_product": "whatsapp"}
-        resp = requests.post(url, headers=headers, files=files, data=data,
-                             timeout=120)
+        resp = requests.post(url, headers=headers, files=files, data=data, timeout=120)
     print(f"WA upload status: {resp.status_code}")
     if resp.status_code >= 400:
         print(resp.text[:500])
         return None
     return resp.json().get("id")
+
 
 def whatsapp_send_video(media_id: str, caption: str):
     if not (WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_TOKEN and WHATSAPP_TO_NUMBER):
@@ -365,6 +386,7 @@ def run_once():
             aid = a.get("activityId")
             if not aid:
                 continue
+
             start_ts = a.get("from")
             end_ts = a.get("to")
             note = (a.get("note") or "").strip() or "(no note)"
@@ -374,46 +396,60 @@ def run_once():
             )
 
             # START notification (seen for first time)
-            if not sess_state["notified_start"]:
-                msg = f"▶ {name} STARTED session \"{note}\" at {format_pkt_time(start_ts)} (PKT)"
+            if start_ts and not sess_state["notified_start"]:
+                msg = (
+                    f"▶ {name} STARTED session \"{note}\" "
+                    f"at {format_pkt_time(start_ts)} (PKT)"
+                )
                 print("Sending START:", msg)
                 whatsapp_send_text(msg)
                 sess_state["notified_start"] = True
 
             # END notification
             if end_ts and not sess_state["notified_end"]:
-                duration = end_ts - start_ts
+                # 'end_ts' is the end of tracked/active work
+                active_duration = max(0, end_ts - start_ts)
+
+                # We treat "when we detect the end" as the human STOP time
+                detected_end_ts = utc_now_ts()
+
                 print(f"Session {aid} for {name} ended, building video...")
                 screenshots = fetch_screenshots_for_activity(aid)
                 video_info = build_session_video(name, note, a, screenshots)
+
                 if video_info:
                     video_path, avg_level, frame_count = video_info
                     media_id = whatsapp_upload_media(video_path)
                     if media_id:
-                        dur_str = format_duration(duration)
-                        st = format_pkt_time(start_ts)
-                        en = format_pkt_time(end_ts)
+                        dur_str = format_duration(active_duration)
+                        start_str = format_pkt_time(start_ts)
+                        end_str = format_pkt_time(detected_end_ts)
+
                         caption = (
                             f"⏹ {name} STOPPED · \"{note}\"\n"
-                            f"{en} PKT , session duration ({dur_str}). "
-                            f"{frame_count} screenshots."
+                            f"{start_str} – {end_str} PKT "
+                            f"(active {dur_str}), {frame_count} screenshots."
                         )
                         if avg_level is not None:
                             caption += f" Avg activity {avg_level}%."
                         whatsapp_send_video(media_id, caption)
                     else:
                         # fallback text
+                        dur_str = format_duration(active_duration)
                         msg = (
-                            f"⏹ {name} FINISHED without Screenshots \"{note}\" "
-                            f"{format_duration(duration)} "
-                            f"({format_pkt_time(start_ts)}–{format_pkt_time(end_ts)} PKT)"
+                            f"⏹ {name} FINISHED \"{note}\" "
+                            f"(active {dur_str}) "
+                            f"{format_pkt_time(start_ts)}–"
+                            f"{format_pkt_time(detected_end_ts)} PKT"
                         )
                         whatsapp_send_text(msg)
                 else:
+                    dur_str = format_duration(active_duration)
                     msg = (
                         f"⏹ {name} finished \"{note}\" "
-                        f"{format_duration(duration)} "
-                        f"({format_pkt_time(start_ts)}–{format_pkt_time(end_ts)} PKT)"
+                        f"(active {dur_str}) "
+                        f"{format_pkt_time(start_ts)}–"
+                        f"{format_pkt_time(detected_end_ts)} PKT"
                     )
                     whatsapp_send_text(msg)
 
