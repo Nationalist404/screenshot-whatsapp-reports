@@ -1,0 +1,29 @@
+name: List WhatsApp groups
+
+on:
+  workflow_dispatch: {}   # run manually
+
+permissions:
+  contents: read
+
+jobs:
+  list-groups:
+    runs-on: ubuntu-latest
+    env:
+      WHATSAPP_PHONE_ID: ${{ secrets.WHATSAPP_PHONE_ID }}
+      WHATSAPP_TOKEN: ${{ secrets.WHATSAPP_TOKEN }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install requests
+
+      - name: List WhatsApp groups
+        run: python list_groups.py
