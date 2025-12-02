@@ -154,7 +154,10 @@ def annotate_frame(img, employee_name, note, start_ts, end_ts, avg_level):
     draw.rectangle((x - 6, y - 4, x + tw + 6, y + th + 4), fill=(0, 0, 0))
     draw.multiline_text((x, y), text, font=font, fill=(255, 255, 255))
 
-def build_session_video(employee_name, note, activity, screenshots, target_width=1280, fps=2):
+def build_session_video(employee_name, note, activity, screenshots,
+                        target_width=1280, fps=2):
+    """Build a video for a single ScreenshotMonitor activity."""
+
     if not screenshots:
         print("No screenshots for this session.")
         return None
@@ -164,11 +167,18 @@ def build_session_video(employee_name, note, activity, screenshots, target_width
     start_ts = activity["from"]
     end_ts = activity["to"] or start_ts
 
-    levels = [s.get("activityLevel") for s in screenshots
-              if s.get("activityLevel") is not None]
+    # Average activity level for this session
+    levels = [
+        s.get("activityLevel")
+        for s in screenshots
+        if s.get("activityLevel") is not None
+    ]
     avg_level = round(sum(levels) / len(levels)) if levels else None
 
-    screenshots_sorted = sorted(screenshots, key=lambda s: s.get("taken", 0))
+    screenshots_sorted = sorted(
+        screenshots,
+        key=lambda s: s.get("taken", 0)
+    )
 
     frames = []
     for s in screenshots_sorted:
@@ -176,17 +186,25 @@ def build_session_video(employee_name, note, activity, screenshots, target_width
         shot_id = s.get("id")
         if not url:
             continue
+
         try:
             r = requests.get(url, timeout=120)
             r.raise_for_status()
-            from PIL import Image
+
+            from PIL import Image  # or keep this import at top of file
             img = Image.open(BytesIO(r.content)).convert("RGB")
+
             w, h = img.size
             if w > target_width:
                 scale = target_width / float(w)
-                img = img.resize((target_width, int(h * scale)), Image.LANCZOS)
+                img = img.resize(
+                    (target_width, int(h * scale)),
+                    Image.LANCZOS
+                )
+
             annotate_frame(img, employee_name, note, start_ts, end_ts, avg_level)
             frames.append(np.array(img))
+
         except Exception as e:
             print(f"Failed to process screenshot {shot_id}: {e}")
 
@@ -197,23 +215,24 @@ def build_session_video(employee_name, note, activity, screenshots, target_width
     day_str = ts_to_pkt(start_ts).date().isoformat()
     out_path = OUTPUT_DIR / f"{employee_name}_{day_str}_{activity['activityId']}.mp4"
 
-        try:
-            writer = imageio.get_writer(
-                str(out_path),
-                fps=fps,
-                codec="libx264",
-                format="FFMPEG",   # explicitly use ffmpeg plugin
-            )
-        except Exception as e:
-            print(f"Could not create video writer for {out_path}: {e}")
-            return None
-        
-        with writer:
-            for frame in frames:
-                writer.append_data(frame)
+    # ---- this is the part we changed with try/except ----
+    try:
+        writer = imageio.get_writer(
+            str(out_path),
+            fps=fps,
+            codec="libx264",
+            format="FFMPEG",  # use ffmpeg plugin
+        )
+    except Exception as e:
+        print(f"Could not create video writer for {out_path}: {e}")
+        return None
 
+    with writer:
+        for frame in frames:
+            writer.append_data(frame)
 
     return out_path, avg_level, len(frames)
+
 
 
 # ---------- WHATSAPP HELPERS ----------
