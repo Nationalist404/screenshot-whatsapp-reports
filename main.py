@@ -343,6 +343,14 @@ def main():
     print(f"From (unix): {from_ts}")
     print(f"To   (unix): {to_ts}")
 
+    # DEBUG: check that all WhatsApp env vars are present
+    print(
+        "WhatsApp env present?:",
+        bool(WHATSAPP_PHONE_NUMBER_ID),
+        bool(WHATSAPP_TOKEN),
+        bool(WHATSAPP_TO_NUMBER),
+    )
+    
     for employment_id, employee_name in EMPLOYMENTS.items():
         print(f"\n=== Processing employmentId {employment_id} ({employee_name}) ===")
 
