@@ -129,19 +129,56 @@ def get_font(size: int = 22):
             continue
     return ImageFont.load_default()
 
-def annotate_frame(img, employee_name, note, start_ts, end_ts, avg_level):
+def annotate_frame(img, employee_name, note, screenshot):
+    """
+    Draw overlay similar to the daily video:
+
+    VOID | 2025-12-01 06:44
+    Activity: 88% | App: blender
+    Note: qasim - southern energy
+    """
     draw = ImageDraw.Draw(img)
     font = get_font(22)
 
-    start_str = format_pkt_time(start_ts)
-    end_str = format_pkt_time(end_ts) if end_ts else "running..."
-    line1 = f"{employee_name} | {note}"
-    line2 = f"{start_str} – {end_str} PKT"
-    if avg_level is not None:
-        line3 = f"Activity: {avg_level}%"
-        text = f"{line1}\n{line2}\n{line3}"
+    taken_ts = screenshot.get("taken")
+    activity_level = screenshot.get("activityLevel")
+    apps = screenshot.get("applications") or []
+
+    # Line 1: Name + timestamp in PKT
+    if taken_ts:
+        dt_str = ts_to_pkt(taken_ts).strftime("%Y-%m-%d %H:%M")
+        line1 = f"{employee_name} | {dt_str}"
     else:
-        text = f"{line1}\n{line2}"
+        line1 = employee_name
+
+    # Choose main application (prefer fromScreen=True, then longest duration)
+    main_app = None
+    if apps:
+        main_app = max(
+            apps,
+            key=lambda a: (
+                bool(a.get("fromScreen")),
+                a.get("duration", 0)
+            )
+        ).get("applicationName")
+
+    # Line 2: Activity + App
+    parts = []
+    if activity_level is not None:
+        parts.append(f"Activity: {activity_level}%")
+    if main_app:
+        parts.append(f"App: {main_app}")
+    line2 = " | ".join(parts) if parts else ""
+
+    # Line 3: Note
+    line3 = f"Note: {note}" if note else ""
+
+    # Build multi-line text
+    lines = [line for line in (line1, line2, line3) if line]
+    text = "\n".join(lines)
+
+    if not text:
+        return  # nothing to draw
 
     bbox = draw.multiline_textbbox((0, 0), text, font=font)
     tw = bbox[2] - bbox[0]
@@ -151,8 +188,14 @@ def annotate_frame(img, employee_name, note, start_ts, end_ts, avg_level):
     x = margin
     y = H - th - margin
 
-    draw.rectangle((x - 6, y - 4, x + tw + 6, y + th + 4), fill=(0, 0, 0))
+    # Background box
+    draw.rectangle(
+        (x - 6, y - 4, x + tw + 6, y + th + 4),
+        fill=(0, 0, 0)
+    )
+    # Text
     draw.multiline_text((x, y), text, font=font, fill=(255, 255, 255))
+
 
 def build_session_video(employee_name, note, activity, screenshots,
                         target_width=1280, fps=2):
@@ -186,14 +229,14 @@ def build_session_video(employee_name, note, activity, screenshots,
         shot_id = s.get("id")
         if not url:
             continue
-
+    
         try:
             r = requests.get(url, timeout=120)
             r.raise_for_status()
-
+    
             from PIL import Image  # or keep this import at top of file
             img = Image.open(BytesIO(r.content)).convert("RGB")
-
+    
             w, h = img.size
             if w > target_width:
                 scale = target_width / float(w)
@@ -201,12 +244,14 @@ def build_session_video(employee_name, note, activity, screenshots,
                     (target_width, int(h * scale)),
                     Image.LANCZOS
                 )
-
-            annotate_frame(img, employee_name, note, start_ts, end_ts, avg_level)
+    
+            # NEW: annotate per screenshot with detailed overlay
+            annotate_frame(img, employee_name, note, s)
             frames.append(np.array(img))
-
+    
         except Exception as e:
             print(f"Failed to process screenshot {shot_id}: {e}")
+
 
     if not frames:
         print("No frames after processing.")
