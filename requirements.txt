@@ -1,4 +1,4 @@
 requests
 Pillow
-moviepy
+imageio[ffmpeg]
 numpy
