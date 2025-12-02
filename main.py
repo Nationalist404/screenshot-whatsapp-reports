@@ -110,10 +110,16 @@ def fetch_screenshots_for_activities(activity_ids: list[str]):
     return data
 
 
-def build_gif_for_employment(employment_id: int, day: dt.date, screenshots: list,
-                             use_thumbs: bool = True, max_frames: int | None = 60):
+def build_gif_for_employment(
+    employment_id: int,
+    day: dt.date,
+    screenshots: list,
+    target_width: int = 1920,          # 1920 ~ 2K, use 1280 for ~1K
+    max_frames: int | None = 60,
+):
     """
-    Download screenshot images and build a GIF for a single employment & day.
+    Download screenshot images at full quality (url), downscale to target_width,
+    and build a GIF for a single employment & day.
     Returns the output Path or None if no frames.
     """
     if not screenshots:
@@ -132,20 +138,29 @@ def build_gif_for_employment(employment_id: int, day: dt.date, screenshots: list
     frames = []
 
     for shot in screenshots_sorted:
-        url = None
-        if use_thumbs and shot.get("thumbUrl"):
-            url = shot["thumbUrl"]
-        else:
-            url = shot["url"]
-
+        url = shot.get("url")
         shot_id = shot.get("id")
+
+        if not url:
+            print(f"Screenshot {shot_id} has no url, skipping.")
+            continue
 
         try:
             print(f"Downloading screenshot {shot_id} from {url}")
             r = requests.get(url, stream=True, timeout=120)
             r.raise_for_status()
             img = Image.open(BytesIO(r.content)).convert("RGB")
+
+            # --- downscale to target_width while preserving aspect ratio ---
+            w, h = img.size
+            if w > target_width:
+                scale = target_width / float(w)
+                new_size = (target_width, int(h * scale))
+                img = img.resize(new_size, Image.LANCZOS)
+                print(f"Resized {shot_id} from {w}x{h} to {new_size[0]}x{new_size[1]}")
+
             frames.append(img)
+
         except Exception as e:
             print(f"Failed to download/process screenshot {shot_id}: {e}")
 
@@ -153,7 +168,7 @@ def build_gif_for_employment(employment_id: int, day: dt.date, screenshots: list
         print("All screenshot downloads failed – no GIF created.")
         return None
 
-    # Duration per frame in ms (adjust later if you want)
+    # Duration per frame in ms
     duration_ms = 800
 
     out_path = OUTPUT_DIR / f"{employment_id}_{day.isoformat()}.gif"
@@ -170,6 +185,7 @@ def build_gif_for_employment(employment_id: int, day: dt.date, screenshots: list
     )
 
     return out_path
+
 
 
 def main():
@@ -202,7 +218,7 @@ def main():
     print(json.dumps(screenshots[:2], indent=2, default=str))
 
     # 4) Build GIF for this employment & day
-    gif_path = build_gif_for_employment(TEST_EMPLOYMENT_ID, day, screenshots)
+    gif_path = build_gif_for_employment(TEST_EMPLOYMENT_ID, day, screenshots, target_width=1280)
 
     if gif_path:
         print(f"\n✅ GIF created at: {gif_path}")
