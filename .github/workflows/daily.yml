@@ -28,7 +28,11 @@ jobs:
       - name: Run script
         env:
           SSM_TOKEN: ${{ secrets.SSM_TOKEN }}
+          WHATSAPP_PHONE_NUMBER_ID: ${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
+          WHATSAPP_TOKEN: ${{ secrets.WHATSAPP_TOKEN }}
+          WHATSAPP_TO_NUMBER: ${{ secrets.WHATSAPP_TO_NUMBER }}
         run: python main.py
+
 
       - name: Upload Video artifact
         if: always()
