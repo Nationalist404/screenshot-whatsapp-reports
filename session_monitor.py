@@ -154,8 +154,7 @@ def annotate_frame(img, employee_name, note, start_ts, end_ts, avg_level):
     draw.rectangle((x - 6, y - 4, x + tw + 6, y + th + 4), fill=(0, 0, 0))
     draw.multiline_text((x, y), text, font=font, fill=(255, 255, 255))
 
-def build_session_video(employee_name, note, activity, screenshots,
-                        target_width=1280, fps=2):
+def build_session_video(employee_name, note, activity, screenshots, target_width=1280, fps=2):
     if not screenshots:
         print("No screenshots for this session.")
         return None
@@ -198,9 +197,21 @@ def build_session_video(employee_name, note, activity, screenshots,
     day_str = ts_to_pkt(start_ts).date().isoformat()
     out_path = OUTPUT_DIR / f"{employee_name}_{day_str}_{activity['activityId']}.mp4"
 
-    with imageio.get_writer(str(out_path), fps=fps, codec="libx264") as writer:
-        for frame in frames:
-            writer.append_data(frame)
+        try:
+            writer = imageio.get_writer(
+                str(out_path),
+                fps=fps,
+                codec="libx264",
+                format="FFMPEG",   # explicitly use ffmpeg plugin
+            )
+        except Exception as e:
+            print(f"Could not create video writer for {out_path}: {e}")
+            return None
+        
+        with writer:
+            for frame in frames:
+                writer.append_data(frame)
+
 
     return out_path, avg_level, len(frames)
 
