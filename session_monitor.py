@@ -375,7 +375,7 @@ def run_once():
 
             # START notification (seen for first time)
             if not sess_state["notified_start"]:
-                msg = f"▶ {name} STARTED \"{note}\" at {format_pkt_time(start_ts)} (PKT)"
+                msg = f"▶ {name} STARTED session \"{note}\" at {format_pkt_time(start_ts)} (PKT)"
                 print("Sending START:", msg)
                 whatsapp_send_text(msg)
                 sess_state["notified_start"] = True
@@ -395,7 +395,7 @@ def run_once():
                         en = format_pkt_time(end_ts)
                         caption = (
                             f"⏹ {name} STOPPED · \"{note}\"\n"
-                            f"{st} – {en} PKT ({dur_str}). "
+                            f"{en} PKT , session duration ({dur_str}). "
                             f"{frame_count} screenshots."
                         )
                         if avg_level is not None:
