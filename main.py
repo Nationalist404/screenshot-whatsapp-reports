@@ -1,44 +1,24 @@
 import os
 import datetime as dt
 import json
+from io import BytesIO
+from pathlib import Path
+
 import requests
+from PIL import Image
 
 # ---- CONFIG ----
 
 API_BASE = "https://screenshotmonitor.com/api/v2"
 SSM_TOKEN = os.environ["SSM_TOKEN"]
 
-# TODO: if you track multiple people later, we’ll make this a list.
-TEST_EMPLOYMENT_ID = 433687  # <--- keep your working id here
+# Your ScreenshotMonitor employmentId (the one you tested)
+TEST_EMPLOYMENT_ID = 433687  # <- change if needed
+
+OUTPUT_DIR = Path("out")
 
 
 # ---------- HTTP HELPERS ----------
-
-def api_get(path: str, params: dict | None = None):
-    if params is None:
-        params = {}
-
-    url = f"{API_BASE}{path}"
-    headers = {"X-SSM-Token": SSM_TOKEN}
-
-    print(f"GET {url}")
-    print(f"Params: {params}")
-
-    resp = requests.get(url, headers=headers, params=params, timeout=60)
-    print(f"Status code: {resp.status_code}")
-
-    if resp.status_code >= 400:
-        print("=== ERROR RESPONSE BODY (first 1000 chars) ===")
-        print(resp.text[:1000])
-        resp.raise_for_status()
-
-    try:
-        return resp.json()
-    except Exception:
-        print("Response is not JSON. Raw text:")
-        print(resp.text[:1000])
-        raise
-
 
 def api_post(path: str, body):
     url = f"{API_BASE}{path}"
@@ -112,17 +92,12 @@ def fetch_activities_for_employment(employment_id: int, from_ts: int, to_ts: int
 
 def fetch_screenshots_for_activities(activity_ids: list[str]):
     """
-    Uses POST /GetScreenshots.
-    Docs say “Returns screenshots for given activity IDs”.
-    Most likely this expects a JSON array of activityId strings.
-    If your API docs show a different body shape (e.g. {\"activityIds\": [...]})
-    you can adjust 'body' below accordingly.
+    Uses POST /GetScreenshots with an array of activityId GUIDs.
     """
     if not activity_ids:
         print("No activity IDs provided, skipping GetScreenshots.")
         return []
 
-    # If the docs show a different body form, tweak this:
     body = activity_ids
 
     data = api_post("/GetScreenshots", body)
@@ -133,6 +108,68 @@ def fetch_screenshots_for_activities(activity_ids: list[str]):
         return []
 
     return data
+
+
+def build_gif_for_employment(employment_id: int, day: dt.date, screenshots: list,
+                             use_thumbs: bool = True, max_frames: int | None = 60):
+    """
+    Download screenshot images and build a GIF for a single employment & day.
+    Returns the output Path or None if no frames.
+    """
+    if not screenshots:
+        print("No screenshots to build GIF from.")
+        return None
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Sort chronologically by 'taken' timestamp
+    screenshots_sorted = sorted(screenshots, key=lambda s: s.get("taken", 0))
+
+    # Optionally limit frames to keep GIF size sane
+    if max_frames is not None:
+        screenshots_sorted = screenshots_sorted[:max_frames]
+
+    frames = []
+
+    for shot in screenshots_sorted:
+        url = None
+        if use_thumbs and shot.get("thumbUrl"):
+            url = shot["thumbUrl"]
+        else:
+            url = shot["url"]
+
+        shot_id = shot.get("id")
+
+        try:
+            print(f"Downloading screenshot {shot_id} from {url}")
+            r = requests.get(url, stream=True, timeout=120)
+            r.raise_for_status()
+            img = Image.open(BytesIO(r.content)).convert("RGB")
+            frames.append(img)
+        except Exception as e:
+            print(f"Failed to download/process screenshot {shot_id}: {e}")
+
+    if not frames:
+        print("All screenshot downloads failed – no GIF created.")
+        return None
+
+    # Duration per frame in ms (adjust later if you want)
+    duration_ms = 800
+
+    out_path = OUTPUT_DIR / f"{employment_id}_{day.isoformat()}.gif"
+
+    print(f"Saving GIF to {out_path} with {len(frames)} frames")
+    frames[0].save(
+        out_path,
+        save_all=True,
+        append_images=frames[1:],
+        duration=duration_ms,
+        loop=0,
+        optimize=True,
+        format="GIF",
+    )
+
+    return out_path
 
 
 def main():
@@ -149,12 +186,7 @@ def main():
     print("\n=== Activities preview (first 2) ===")
     print(json.dumps(activities[:2], indent=2, default=str))
 
-    # 3) Collect a few activityIds
     activity_ids = [a["activityId"] for a in activities if "activityId" in a]
-
-    # Limit just to avoid huge test output
-    activity_ids = activity_ids[:10]
-
     print("\nActivity IDs we will ask screenshots for:")
     print(activity_ids)
 
@@ -162,12 +194,20 @@ def main():
         print("No activities with activityId found – nothing to fetch screenshots for.")
         return
 
-    # 4) Fetch screenshots for these activityIds
+    # 3) Fetch screenshots for these activities
     screenshots = fetch_screenshots_for_activities(activity_ids)
     print(f"\nTotal screenshots returned: {len(screenshots)}")
 
     print("\n=== Screenshots preview (first 2) ===")
     print(json.dumps(screenshots[:2], indent=2, default=str))
+
+    # 4) Build GIF for this employment & day
+    gif_path = build_gif_for_employment(TEST_EMPLOYMENT_ID, day, screenshots)
+
+    if gif_path:
+        print(f"\n✅ GIF created at: {gif_path}")
+    else:
+        print("\n⚠️ No GIF was created.")
 
 
 if __name__ == "__main__":
