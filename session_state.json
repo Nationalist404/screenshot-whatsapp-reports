@@ -1,0 +1,40 @@
+{
+  "sessions": {
+    "433687": {
+      "c4c8de92-0ca6-473b-a31a-48659094fac8": {
+        "notified_start": true,
+        "notified_end": true
+      },
+      "ae09cf3a-e1e3-46c7-a481-8aaa48ddd6fc": {
+        "notified_start": true,
+        "notified_end": true
+      },
+      "ff484049-4905-4ecb-adb9-4d7c45e537d6": {
+        "notified_start": true,
+        "notified_end": true
+      },
+      "8c607e71-0ef7-4514-8baa-3056f6a4f922": {
+        "notified_start": true,
+        "notified_end": true
+      },
+      "df8c09c4-d442-47fd-89d8-cd3ea9cc6b55": {
+        "notified_start": true,
+        "notified_end": true
+      },
+      "7af8f50a-2099-4e57-a34e-ea2a513dfa33": {
+        "notified_start": true,
+        "notified_end": true
+      }
+    },
+    "433688": {
+      "225c6d50-c029-4784-a80e-56ce84e913e1": {
+        "notified_start": true,
+        "notified_end": true
+      },
+      "6674052c-b294-4fa1-bcf7-422bc4939bdb": {
+        "notified_start": true,
+        "notified_end": true
+      }
+    }
+  }
+}
