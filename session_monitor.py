@@ -29,6 +29,8 @@ STATE_FILE = Path("session_state.json")
 OUTPUT_DIR = Path("session_videos")
 
 PKT = dt.timezone(dt.timedelta(hours=5))  # Pakistan time
+OFFLINE_GRACE_SECONDS = 10 * 60  # 15 minutes with no activity = treat as stopped
+
 
 
 # ---------- TIME HELPERS ----------
@@ -370,6 +372,8 @@ def run_once():
     print(f"=== Session monitor run at {dt.datetime.now()} ===")
     state = load_state()
 
+    now_ts = utc_now_ts()  # <-- add this line
+
     # state["sessions"][employmentId_str][activityId] = {
     #   "notified_start": bool,
     #   "notified_end": bool
@@ -407,11 +411,20 @@ def run_once():
 
             # END notification
             if end_ts and not sess_state["notified_end"]:
-                # 'end_ts' is the end of tracked/active work
+
+                # If the last activity is very recent, assume the session is still ongoing.
+                # Only treat it as "stopped" if we haven't seen any activity
+                # for at least OFFLINE_GRACE_SECONDS.
+                if now_ts - end_ts < OFFLINE_GRACE_SECONDS:
+                    # still likely online; skip for this run
+                    continue
+
+                # 'end_ts' is the end of tracked/active work (for duration)
                 active_duration = max(0, end_ts - start_ts)
 
                 # We treat "when we detect the end" as the human STOP time
-                detected_end_ts = utc_now_ts()
+                detected_end_ts = now_ts
+
 
                 print(f"Session {aid} for {name} ended, building video...")
                 screenshots = fetch_screenshots_for_activity(aid)
