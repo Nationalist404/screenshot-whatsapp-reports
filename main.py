@@ -6,13 +6,15 @@ from pathlib import Path
 
 import requests
 from PIL import Image, ImageDraw, ImageFont
+import numpy as np
+from moviepy.editor import ImageSequenceClip
 
 # ---- CONFIG ----
 
 API_BASE = "https://screenshotmonitor.com/api/v2"
 SSM_TOKEN = os.environ["SSM_TOKEN"]
 
-# Map employmentId -> employee name (you can add more later)
+# Map employmentId -> employee name (add more IDs here later)
 EMPLOYMENTS = {
     433687: "Void Studios",   # <--- change/add as needed
 }
@@ -116,7 +118,7 @@ def fetch_screenshots_for_activities(activity_ids: list[str]):
     return data
 
 
-# ---------- DRAWING / GIF BUILDING ----------
+# ---------- DRAWING / VIDEO BUILDING ----------
 
 def annotate_frame(
     img: Image.Image,
@@ -151,7 +153,6 @@ def annotate_frame(
     line2 = f"Activity: {activity_level}% | App: {app_name}"
     line3 = f"Note: {note}" if note else ""
 
-    # Build final text (skip empty line3 if no note)
     if line3:
         text = f"{line1}\n{line2}\n{line3}"
     else:
@@ -177,23 +178,23 @@ def annotate_frame(
     draw.multiline_text((x, y), text, font=font, fill=(255, 255, 255))
 
 
-
-def build_annotated_gif(
+def build_annotated_video(
     employment_id: int,
     employee_name: str,
     day: dt.date,
     screenshots: list,
     activity_by_id: dict[str, dict],
-    target_width: int = 1280,   # set 1920 for ~2K, 1280 for ~1K
+    target_width: int = 1280,   # 1280 ≈ 1K; use 1920 for ~2K
     max_frames: int | None = 60,
+    fps: int = 1,               # 1 frame/sec; adjust to taste
 ):
     """
     Download screenshot images at full quality (url), downscale to target_width,
-    burn in annotations (name, time, activity, app, note), and build a GIF.
+    burn in annotations (name, time, activity, app, note), and build an MP4 video.
     Returns the output Path or None if no frames.
     """
     if not screenshots:
-        print("No screenshots to build GIF from.")
+        print("No screenshots to build video from.")
         return None
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -205,7 +206,7 @@ def build_annotated_gif(
     if max_frames is not None:
         screenshots_sorted = screenshots_sorted[:max_frames]
 
-    frames: list[Image.Image] = []
+    frames: list[np.ndarray] = []
 
     for shot in screenshots_sorted:
         url = shot.get("url")
@@ -226,7 +227,6 @@ def build_annotated_gif(
         app_name = "unknown"
         apps = shot.get("applications") or []
         if apps:
-            # choose app with longest duration (or just first if durations missing)
             primary_app = max(apps, key=lambda a: a.get("duration", 0))
             app_name = primary_app.get("applicationName") or "unknown"
 
@@ -247,41 +247,40 @@ def build_annotated_gif(
                 img = img.resize(new_size, Image.LANCZOS)
                 print(f"Resized {shot_id} from {w}x{h} to {new_size[0]}x{new_size[1]}")
 
-            # Burn text overlay (now includes app_name)
+            # Burn text overlay
             annotate_frame(img, employee_name, time_str, note, activity_level, app_name)
 
-            frames.append(img)
+            # Convert to numpy array for MoviePy
+            frames.append(np.array(img))
 
         except Exception as e:
             print(f"Failed to download/process screenshot {shot_id}: {e}")
 
     if not frames:
-        print("All screenshot downloads failed – no GIF created.")
+        print("All screenshot downloads failed – no video created.")
         return None
 
-    duration_ms = 800
-    out_path = OUTPUT_DIR / f"{employment_id}_{day.isoformat()}.gif"
+    out_path = OUTPUT_DIR / f"{employment_id}_{day.isoformat()}.mp4"
+    print(f"Saving video to {out_path} with {len(frames)} frames at {fps} fps")
 
-    print(f"Saving GIF to {out_path} with {len(frames)} frames")
-    frames[0].save(
-        out_path,
-        save_all=True,
-        append_images=frames[1:],
-        duration=duration_ms,
-        loop=0,
-        optimize=True,
-        format="GIF",
+    clip = ImageSequenceClip(frames, fps=fps)
+    # codec 'libx264' is widely supported; no audio
+    clip.write_videofile(
+        str(out_path),
+        codec="libx264",
+        audio=False,
+        verbose=True,
+        logger=None,
     )
 
     return out_path
-
 
 
 # ---------- MAIN ----------
 
 def main():
     day, from_ts, to_ts = get_yesterday_range_utc()
-    print(f"Building GIFs for date: {day}")
+    print(f"Building videos for date: {day}")
     print(f"From (unix): {from_ts}")
     print(f"To   (unix): {to_ts}")
 
@@ -294,7 +293,7 @@ def main():
         print("\nActivities preview (first 2):")
         print(json.dumps(activities[:2], indent=2, default=str))
 
-        activity_ids = [a["activityId"] for a in activities if "activityId" in a]
+        activity_ids = [sort["activityId"] for sort in activities if "activityId" in sort]
         if not activity_ids:
             print("No activities with activityId found – skipping this employment.")
             continue
@@ -311,20 +310,21 @@ def main():
         # Build map {activityId -> activity object} for easy lookup
         activity_by_id = {a["activityId"]: a for a in activities if "activityId" in a}
 
-        gif_path = build_annotated_gif(
+        video_path = build_annotated_video(
             employment_id,
             employee_name,
             day,
             screenshots,
             activity_by_id,
-            target_width=1280,   # change to 1920 if you want larger
-            max_frames=300,
+            target_width=1280,   # or 1920
+            max_frames=120,      # more frames = longer, bigger video
+            fps=2,               # 2 frames/sec = more fluid
         )
 
-        if gif_path:
-            print(f"✅ GIF created for {employee_name}: {gif_path}")
+        if video_path:
+            print(f"✅ Video created for {employee_name}: {video_path}")
         else:
-            print(f"⚠️ No GIF created for {employee_name}.")
+            print(f"⚠️ No video created for {employee_name}.")
 
 
 if __name__ == "__main__":
