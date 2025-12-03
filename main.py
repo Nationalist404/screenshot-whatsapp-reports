@@ -610,9 +610,9 @@ def build_activity_summary(
     # Overall daily range + total time
     if earliest is not None and latest is not None:
         lines.append(
-            f"*Overall: {len(activities)} session(s)*, "
+            f"*_Overall: {len(activities)} session(s)_*, "
             f"{format_pkt_time(earliest)}–{format_pkt_time(latest)}, "
-            f"total *{format_duration(total_duration)}*."
+            f"total *_{format_duration(total_duration)}_*."
         )
 
     # To keep caption reasonably short, cap detailed lines:
@@ -626,8 +626,8 @@ def build_activity_summary(
         note_duration = sum(s["duration"] for s in sessions_sorted)
 
         lines.append(
-            f"*\n{note}: {len(sessions_sorted)} session(s)*, "
-            f"*{format_duration(note_duration)} total*."
+            f"\n*_{note}: {len(sessions_sorted)} session(s)_*, "
+            f"*_{format_duration(note_duration)} total_*."
         )
 
         for idx, s in enumerate(sessions_sorted, start=1):
