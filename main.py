@@ -140,6 +140,7 @@ def format_pkt_time(ts: int) -> str:
 def format_pkt_timestamp_24(ts: int) -> str:
     # 24-hour for video overlay
     return ts_to_pkt(ts).strftime("%Y-%m-%d %H:%M (PKT)")
+    
 
 
 def format_duration(seconds: int) -> str:
@@ -290,16 +291,18 @@ def annotate_frame(
       line 3: note
     """
     draw = ImageDraw.Draw(img)
-    font = get_overlay_font(size=22)  # <--- bigger font now
+    font = get_overlay_font(size=22)
 
+    # Normalize values
     if activity_level is None:
         activity_level = 0
     if app_name is None or app_name == "":
         app_name = "unknown"
-
-    max_note_len = 80
     if note is None:
         note = ""
+
+    # Shorten long notes
+    max_note_len = 80
     if len(note) > max_note_len:
         note = note[: max_note_len - 3] + "..."
 
@@ -307,11 +310,9 @@ def annotate_frame(
     line2 = f"Activity: {activity_level}% | App: {app_name}"
     line3 = f"Note: {note}" if note else ""
 
-    if line3:
-        text = f"{line1}\n{line2}\n{line3}"
-    else:
-        text = f"{line1}\n{line2}"
+    text = f"{line1}\n{line2}" if not line3 else f"{line1}\n{line2}\n{line3}"
 
+    # Compute text bounding box
     bbox = draw.multiline_textbbox((0, 0), text, font=font)
     tw = bbox[2] - bbox[0]
     th = bbox[3] - bbox[1]
@@ -321,11 +322,14 @@ def annotate_frame(
     x = margin
     y = H - th - margin
 
+    # Background
     draw.rectangle(
         (x - 6, y - 4, x + tw + 6, y + th + 4),
         fill=(0, 0, 0),
     )
+    # Text
     draw.multiline_text((x, y), text, font=font, fill=(255, 255, 255))
+
 
 
 def build_annotated_video(
@@ -364,18 +368,22 @@ def build_annotated_video(
             print(f"Screenshot {shot_id} has no url, skipping.")
             continue
 
+        # Session note from the activity
+        activity = activity_by_id.get(activity_id, {})
+        note = activity.get("note", "") or ""
+
+        # Main application name
         app_name = "unknown"
         apps = shot.get("applications") or []
         if apps:
             primary_app = max(apps, key=lambda a: a.get("duration", 0))
             app_name = primary_app.get("applicationName") or "unknown"
 
+        # PKT 24h time for overlay
         if taken_ts is not None:
-            # PKT, 24-hour time for overlay
             time_str = format_pkt_timestamp_24(taken_ts)
         else:
             time_str = "unknown time"
-
 
         try:
             print(f"Downloading screenshot {shot_id} from {url}")
@@ -383,18 +391,24 @@ def build_annotated_video(
             r.raise_for_status()
             img = Image.open(BytesIO(r.content)).convert("RGB")
 
+            # Downscale if needed
             w, h = img.size
             if w > target_width:
                 scale = target_width / float(w)
                 new_size = (target_width, int(h * scale))
                 img = img.resize(new_size, Image.LANCZOS)
-                print(f"Resized {shot_id} from {w}x{h} to {new_size[0]}x{new_size[1]}")
+                print(
+                    f"Resized {shot_id} from {w}x{h} to "
+                    f"{new_size[0]}x{new_size[1]}"
+                )
 
+            # Draw overlay
             annotate_frame(img, employee_name, time_str, note, activity_level, app_name)
             frames.append(np.array(img))
 
         except Exception as e:
             print(f"Failed to download/process screenshot {shot_id}: {e}")
+
 
     if not frames:
         print("All screenshot downloads failed – no video created.")
