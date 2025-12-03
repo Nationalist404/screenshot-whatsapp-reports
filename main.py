@@ -605,7 +605,7 @@ def build_activity_summary(
     lines: list[str] = []
 
     # Header line
-    lines.append(f"{employee_name} — {day.isoformat()} (PKT)")
+    lines.append(f"*_{employee_name} — {day.isoformat()} (PKT)_*")
 
     # Overall daily range + total time
     if earliest is not None and latest is not None:
