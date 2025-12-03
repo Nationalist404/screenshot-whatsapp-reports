@@ -307,6 +307,7 @@ def whatsapp_send_text(message: str):
     if not (WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_TOKEN and WHATSAPP_TO_NUMBER):
         print("WhatsApp env missing, can't send text.")
         return
+
     url = f"{WHATSAPP_BASE}/{WHATSAPP_PHONE_NUMBER_ID}/messages"
     headers = {
         "Authorization": f"Bearer {WHATSAPP_TOKEN}",
@@ -320,8 +321,11 @@ def whatsapp_send_text(message: str):
     }
     resp = requests.post(url, headers=headers, json=body, timeout=60)
     print(f"WA text status: {resp.status_code}")
+    print("WA text response:", resp.text)  # <--- ADD THIS
+
     if resp.status_code >= 400:
-        print(resp.text[:500])
+        print("WA text error body:", resp.text[:500])
+
 
 
 def whatsapp_upload_media(video_path: Path) -> str | None:
@@ -348,6 +352,7 @@ def whatsapp_send_video(media_id: str, caption: str):
     if not (WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_TOKEN and WHATSAPP_TO_NUMBER):
         print("WhatsApp env missing, can't send video.")
         return
+
     url = f"{WHATSAPP_BASE}/{WHATSAPP_PHONE_NUMBER_ID}/messages"
     headers = {
         "Authorization": f"Bearer {WHATSAPP_TOKEN}",
@@ -361,8 +366,11 @@ def whatsapp_send_video(media_id: str, caption: str):
     }
     resp = requests.post(url, headers=headers, json=body, timeout=60)
     print(f"WA video status: {resp.status_code}")
+    print("WA video response:", resp.text)  # <--- ADD THIS
+
     if resp.status_code >= 400:
-        print(resp.text[:500])
+        print("WA video error body:", resp.text[:500])
+
 
 
 # ---------- MAIN: SINGLE RUN ----------
