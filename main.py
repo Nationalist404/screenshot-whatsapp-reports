@@ -594,7 +594,7 @@ def build_activity_summary(
         )
 
     # To keep caption reasonably short, cap detailed lines:
-    MAX_SESSION_LINES = 12
+    MAX_SESSION_LINES = 40
     printed_sessions = 0
     total_sessions = len(activities)
 
@@ -691,8 +691,8 @@ def main():
             screenshots,
             activity_by_id,
             target_width=1280,
-            max_frames=700,  # or 120 if you want ~1 min at 2 fps
-            fps=2,
+            max_frames=3000,  # or 120 if you want ~1 min at 2 fps
+            fps=3,
         )
 
         # Build the detailed PKT summary for this person & day
