@@ -22,15 +22,16 @@ WHATSAPP_BASE = "https://graph.facebook.com/v21.0"
 # employmentId -> display name
 EMPLOYMENTS = {
     433687: "VOID",
-    433688: "Sufyan",  # you; add others like 123456: "Ali"
+    433688: "Sufyan",  # add others like 123456: "Ali"
 }
 
 STATE_FILE = Path("session_state.json")
 OUTPUT_DIR = Path("session_videos")
 
 PKT = dt.timezone(dt.timedelta(hours=5))  # Pakistan time
-OFFLINE_GRACE_SECONDS = 10 * 60  # 15 minutes with no activity = treat as stopped
 
+# how long we must see NO new activity before we treat the session as "stopped"
+OFFLINE_GRACE_SECONDS = 10 * 60  # 10 minutes with no activity = treat as stopped
 
 
 # ---------- TIME HELPERS ----------
@@ -66,8 +67,8 @@ def load_state():
         try:
             with STATE_FILE.open("r", encoding="utf-8") as f:
                 return json.load(f)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Failed to load state file: {e}")
     return {"sessions": {}}  # {employmentId_str: {activityId: {flags...}}}
 
 
@@ -150,7 +151,7 @@ def get_font(size: int = 22):
 
 def annotate_frame(img, employee_name, note, screenshot):
     """
-    Draw overlay similar to the daily video:
+    Draw overlay:
 
     VOID | 2025-12-01 06:44
     Activity: 88% | App: blender
@@ -233,7 +234,6 @@ def build_session_video(
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     start_ts = activity["from"]
-    # NOTE: 'to' is used only for naming / stats, not for message timestamp
     end_ts = activity.get("to") or start_ts
 
     # Average activity level for this session
@@ -270,7 +270,6 @@ def build_session_video(
                     Image.LANCZOS,
                 )
 
-            # annotate per screenshot with detailed overlay
             annotate_frame(img, employee_name, note, s)
             frames.append(np.array(img))
 
@@ -370,9 +369,15 @@ def whatsapp_send_video(media_id: str, caption: str):
 
 def run_once():
     print(f"=== Session monitor run at {dt.datetime.now()} ===")
-    state = load_state()
+    print(
+        "WhatsApp env present?:",
+        bool(WHATSAPP_PHONE_NUMBER_ID),
+        bool(WHATSAPP_TOKEN),
+        bool(WHATSAPP_TO_NUMBER),
+    )
 
-    now_ts = utc_now_ts()  # <-- add this line
+    state = load_state()
+    now_ts = utc_now_ts()
 
     # state["sessions"][employmentId_str][activityId] = {
     #   "notified_start": bool,
@@ -399,34 +404,48 @@ def run_once():
                 aid, {"notified_start": False, "notified_end": False}
             )
 
+            print(
+                f"  Activity {aid}: "
+                f"from={start_ts}, to={end_ts}, "
+                f"notified_start={sess_state['notified_start']}, "
+                f"notified_end={sess_state['notified_end']}"
+            )
+
             # START notification (seen for first time)
             if start_ts and not sess_state["notified_start"]:
                 msg = (
                     f"▶ {name} STARTED session \"{note}\" "
                     f"at {format_pkt_time(start_ts)} (PKT)"
                 )
-                print("Sending START:", msg)
+                print("  -> Sending START:", msg)
                 whatsapp_send_text(msg)
                 sess_state["notified_start"] = True
+            else:
+                if start_ts and sess_state["notified_start"]:
+                    print("  -> START already notified for this activity.")
+                elif not start_ts:
+                    print("  -> No start_ts, skipping START.")
 
             # END notification
             if end_ts and not sess_state["notified_end"]:
+                age_since_end = now_ts - end_ts
+                print(
+                    f"  -> Candidate for END. now_ts={now_ts}, "
+                    f"end_ts={end_ts}, age_since_end={age_since_end}s"
+                )
 
-                # If the last activity is very recent, assume the session is still ongoing.
-                # Only treat it as "stopped" if we haven't seen any activity
-                # for at least OFFLINE_GRACE_SECONDS.
-                if now_ts - end_ts < OFFLINE_GRACE_SECONDS:
-                    # still likely online; skip for this run
+                # Grace window: don't treat it as ended immediately.
+                if age_since_end < OFFLINE_GRACE_SECONDS:
+                    print(
+                        f"  -> Skipping END for now, still within grace "
+                        f"({age_since_end}s < {OFFLINE_GRACE_SECONDS}s)"
+                    )
                     continue
 
-                # 'end_ts' is the end of tracked/active work (for duration)
                 active_duration = max(0, end_ts - start_ts)
-
-                # We treat "when we detect the end" as the human STOP time
                 detected_end_ts = now_ts
 
-
-                print(f"Session {aid} for {name} ended, building video...")
+                print(f"  -> Session {aid} for {name} ended (after grace). Building video...")
                 screenshots = fetch_screenshots_for_activity(aid)
                 video_info = build_session_video(name, note, a, screenshots)
 
@@ -445,9 +464,9 @@ def run_once():
                         )
                         if avg_level is not None:
                             caption += f" Avg activity {avg_level}%."
+                        print("  -> Sending STOP video via WhatsApp.")
                         whatsapp_send_video(media_id, caption)
                     else:
-                        # fallback text
                         dur_str = format_duration(active_duration)
                         msg = (
                             f"⏹ {name} FINISHED \"{note}\" "
@@ -455,6 +474,7 @@ def run_once():
                             f"{format_pkt_time(start_ts)}–"
                             f"{format_pkt_time(detected_end_ts)} PKT"
                         )
+                        print("  -> Sending STOP text (upload failed).")
                         whatsapp_send_text(msg)
                 else:
                     dur_str = format_duration(active_duration)
@@ -464,6 +484,7 @@ def run_once():
                         f"{format_pkt_time(start_ts)}–"
                         f"{format_pkt_time(detected_end_ts)} PKT"
                     )
+                    print("  -> No video built; sending STOP text only.")
                     whatsapp_send_text(msg)
 
                 sess_state["notified_end"] = True
