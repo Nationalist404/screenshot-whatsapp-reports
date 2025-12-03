@@ -1,4 +1,4 @@
-name: Session Monitor (15 min)
+name: Session Monitor (realtime)
 
 permissions:
   contents: write   # <--- add this
