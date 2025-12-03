@@ -14,6 +14,11 @@
         "notified_end": false
       }
     },
-    "433688": {}
+    "433688": {
+      "e78a4374-cfc2-4b2d-8b30-1dfa7ec31593": {
+        "notified_start": true,
+        "notified_end": false
+      }
+    }
   }
 }
