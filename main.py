@@ -134,7 +134,13 @@ def ts_to_pkt(ts: int) -> dt.datetime:
     return dt_utc.astimezone(PKT)
 
 def format_pkt_time(ts: int) -> str:
+    # 12-hour (still used in summaries)
     return ts_to_pkt(ts).strftime("%I:%M %p")
+
+def format_pkt_timestamp_24(ts: int) -> str:
+    # 24-hour for video overlay
+    return ts_to_pkt(ts).strftime("%Y-%m-%d %H:%M (PKT)")
+
 
 def format_duration(seconds: int) -> str:
     seconds = max(0, int(seconds))
@@ -358,16 +364,18 @@ def build_annotated_video(
             print(f"Screenshot {shot_id} has no url, skipping.")
             continue
 
-        activity = activity_by_id.get(activity_id, {})
-        note = activity.get("note", "")
-
         app_name = "unknown"
         apps = shot.get("applications") or []
         if apps:
             primary_app = max(apps, key=lambda a: a.get("duration", 0))
             app_name = primary_app.get("applicationName") or "unknown"
 
-        time_str = format_utc_timestamp(taken_ts) if taken_ts is not None else "unknown time"
+        if taken_ts is not None:
+            # PKT, 24-hour time for overlay
+            time_str = format_pkt_timestamp_24(taken_ts)
+        else:
+            time_str = "unknown time"
+
 
         try:
             print(f"Downloading screenshot {shot_id} from {url}")
