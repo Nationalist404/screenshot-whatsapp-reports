@@ -2,8 +2,10 @@ name: Daily test run
 
 on:
   schedule:
-    - cron: "0 16 * * *"  # 21:00 Pakistan
-  workflow_dispatch: {}
+    # 5 19 UTC = 00:05 AM PKT (UTC+5) every day
+    - cron: "5 19 * * *"
+  workflow_dispatch: {}   # allow manual trigger as well
+
 
 jobs:
   run-script:
