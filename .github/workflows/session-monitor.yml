@@ -4,9 +4,8 @@ permissions:
   contents: write   # <--- add this
 
 on:
-  schedule:
-    - cron: "*/10 * * * *"   # every 10 minutes (UTC)
-  workflow_dispatch:         # allow manual run too
+# schedule now done from cloudfare (UTC)
+  workflow_dispatch:         # allow manual run too, now triggered by cloudfare
 
 jobs:
   monitor:
