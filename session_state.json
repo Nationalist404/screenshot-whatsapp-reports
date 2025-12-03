@@ -17,6 +17,10 @@
     "433688": {
       "e78a4374-cfc2-4b2d-8b30-1dfa7ec31593": {
         "notified_start": true,
+        "notified_end": true
+      },
+      "f45cc076-9229-4a06-87ff-2fd673795d7b": {
+        "notified_start": true,
         "notified_end": false
       }
     }
