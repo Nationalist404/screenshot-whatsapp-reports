@@ -25,6 +25,10 @@
       },
       "f45cc076-9229-4a06-87ff-2fd673795d7b": {
         "notified_start": true,
+        "notified_end": true
+      },
+      "25e6bafe-2944-42ba-a3fa-692669a4a969": {
+        "notified_start": true,
         "notified_end": false
       }
     }
