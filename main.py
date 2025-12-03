@@ -107,17 +107,36 @@ def format_utc_timestamp(ts: int) -> str:
 # ---- TIMEZONE & DURATION HELPERS (PKT) ----
 PKT = dt.timezone(dt.timedelta(hours=5))  # UTC+5
 
+def to_unix_seconds(dt_obj: dt.datetime) -> int:
+    epoch = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
+    if dt_obj.tzinfo is None:
+        dt_obj = dt_obj.replace(tzinfo=dt.timezone.utc)
+    return int((dt_obj - epoch).total_seconds())
+
+def get_yesterday_range_pkt():
+    """
+    Previous *calendar day in PKT* (00:00–24:00 PKT), converted to UTC
+    unix timestamps for ScreenshotMonitor API.
+    """
+    today_pkt = dt.datetime.now(PKT).date()
+    yesterday_pkt = today_pkt - dt.timedelta(days=1)
+
+    start_pkt = dt.datetime.combine(yesterday_pkt, dt.time(0, 0), tzinfo=PKT)
+    end_pkt   = dt.datetime.combine(today_pkt,    dt.time(0, 0), tzinfo=PKT)
+
+    start_utc = start_pkt.astimezone(dt.timezone.utc)
+    end_utc   = end_pkt.astimezone(dt.timezone.utc)
+
+    return yesterday_pkt, to_unix_seconds(start_utc), to_unix_seconds(end_utc)
+
 def ts_to_pkt(ts: int) -> dt.datetime:
-    """Convert unix seconds to a datetime in PKT."""
     dt_utc = dt.datetime.utcfromtimestamp(ts).replace(tzinfo=dt.timezone.utc)
     return dt_utc.astimezone(PKT)
 
 def format_pkt_time(ts: int) -> str:
-    """Return 12-hour time in PKT, e.g. 11:37 AM."""
     return ts_to_pkt(ts).strftime("%I:%M %p")
 
 def format_duration(seconds: int) -> str:
-    """Return duration like '2h 05m' or '25m'."""
     seconds = max(0, int(seconds))
     hours = seconds // 3600
     minutes = (seconds % 3600) // 60
@@ -615,7 +634,7 @@ def build_activity_summary(
 # ---------- MAIN ----------
 
 def main():
-    day, from_ts, to_ts = get_yesterday_range_utc()
+    day, from_ts, to_ts = get_yesterday_range_pkt()
     print(f"Building videos for date: {day}")
     print(f"From (unix): {from_ts}")
     print(f"To   (unix): {to_ts}")
@@ -672,7 +691,7 @@ def main():
             screenshots,
             activity_by_id,
             target_width=1280,
-            max_frames=120,
+            max_frames=700,  # or 120 if you want ~1 min at 2 fps
             fps=2,
         )
 
@@ -684,41 +703,9 @@ def main():
 
             media_id = whatsapp_upload_media(video_path)
             if media_id:
-                # Send video with detailed summary as caption
                 whatsapp_send_video(media_id, summary)
             else:
                 print("Skipping WhatsApp video send because upload failed.")
-                # At least send the text summary
-                whatsapp_send_text(summary)
-        else:
-            print(f"⚠️ No video created for {employee_name}. Sending text summary only.")
-            whatsapp_send_text(summary)
-        activity_by_id = {a["activityId"]: a for a in activities if "activityId" in a}
-
-        video_path = build_annotated_video(
-            employment_id,
-            employee_name,
-            day,
-            screenshots,
-            activity_by_id,
-            target_width=1280,
-            max_frames=700,
-            fps=2,
-        )
-
-        # Build the detailed PKT summary for this person & day
-        summary = build_activity_summary(employee_name, day, activities, screenshots)
-
-        if video_path:
-            print(f"✅ Video created for {employee_name}: {video_path}")
-
-            media_id = whatsapp_upload_media(video_path)
-            if media_id:
-                # Send video with detailed summary as caption
-                whatsapp_send_video(media_id, summary)
-            else:
-                print("Skipping WhatsApp video send because upload failed.")
-                # At least send the text summary
                 whatsapp_send_text(summary)
         else:
             print(f"⚠️ No video created for {employee_name}. Sending text summary only.")
