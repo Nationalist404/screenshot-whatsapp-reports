@@ -150,6 +150,10 @@
       "300c8e52-4413-40ae-b584-a672ccb72e03": {
         "notified_start": true,
         "notified_end": true
+      },
+      "bc80754e-a06a-4278-92c7-690a64278797": {
+        "notified_start": true,
+        "notified_end": false
       }
     }
   }
