@@ -130,6 +130,10 @@
       "957cc39f-4e45-48d0-a6e5-a90bd125ebb3": {
         "notified_start": true,
         "notified_end": true
+      },
+      "c046dd84-dc7a-4dd2-9296-a924845dd74e": {
+        "notified_start": true,
+        "notified_end": false
       }
     }
   }
