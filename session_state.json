@@ -80,6 +80,10 @@
       "3b91c38f-5a2b-4b99-b21d-fe4e0693330b": {
         "notified_start": true,
         "notified_end": true
+      },
+      "5c8be8d0-6928-4874-ac70-76ebeceea43d": {
+        "notified_start": true,
+        "notified_end": false
       }
     },
     "433688": {
@@ -118,6 +122,10 @@
       "14fd0efb-18fa-414f-b2a6-2800d4eaa3ba": {
         "notified_start": true,
         "notified_end": true
+      },
+      "957cc39f-4e45-48d0-a6e5-a90bd125ebb3": {
+        "notified_start": true,
+        "notified_end": false
       }
     }
   }
