@@ -173,6 +173,10 @@
       },
       "514a1747-d95b-409c-a938-762ec9171618": {
         "notified_start": true,
+        "notified_end": true
+      },
+      "39ca07e8-1968-470b-adcc-c8a73e4a9a57": {
+        "notified_start": true,
         "notified_end": false
       }
     }
