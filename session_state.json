@@ -108,6 +108,10 @@
       "7d7c300a-205b-4ce2-bc61-80bded2c5a92": {
         "notified_start": true,
         "notified_end": true
+      },
+      "a4a7ddd9-9f5a-45fc-8aa5-76e683135439": {
+        "notified_start": true,
+        "notified_end": false
       }
     },
     "433688": {
@@ -197,7 +201,7 @@
       },
       "48c29e36-f929-4cfa-86e7-42daa65400bb": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     }
   }
