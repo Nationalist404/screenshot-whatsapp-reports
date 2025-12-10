@@ -124,6 +124,10 @@
       "19ad6300-b2e5-402f-b282-0287808775c1": {
         "notified_start": true,
         "notified_end": true
+      },
+      "6bde3925-ed95-4fdc-a8c7-dd85569ace14": {
+        "notified_start": true,
+        "notified_end": false
       }
     },
     "433688": {
