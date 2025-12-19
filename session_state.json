@@ -629,7 +629,7 @@
       },
       "31d984ea-ab9c-4dc4-989e-e59f54d2b6c5": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     }
   }
