@@ -853,7 +853,7 @@
       },
       "c8d20a86-9bdd-44a8-ba1a-5fadfddb126e": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     }
   }
