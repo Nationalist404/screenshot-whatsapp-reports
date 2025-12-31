@@ -861,7 +861,7 @@
       },
       "e02a28e7-3181-409b-abbc-93bc8b46f3d2": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     }
   }
