@@ -1089,7 +1089,7 @@
       },
       "e1df638d-cebc-4d6f-a90c-4e65b8f1a053": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     }
   }
