@@ -1281,7 +1281,7 @@
       },
       "06339bf0-d89c-42f0-a812-917754ff86c5": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     }
   }
