@@ -595,6 +595,10 @@
       },
       "8f650162-c99c-42f6-b157-ed4513811283": {
         "notified_start": true,
+        "notified_end": true
+      },
+      "2738904f-7b5c-493d-b8bf-649ca6ffc6cd": {
+        "notified_start": true,
         "notified_end": false
       }
     },
