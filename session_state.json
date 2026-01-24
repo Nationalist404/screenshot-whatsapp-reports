@@ -1405,11 +1405,11 @@
       },
       "d2095940-e49b-44be-930d-5cdbc8499793": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       },
       "b071fb1f-8677-456f-8c97-6817aeb8d9dd": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     }
   }
