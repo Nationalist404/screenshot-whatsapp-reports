@@ -1433,7 +1433,7 @@
       },
       "515f6ae5-7a9d-4595-a72a-ed9d0aeba754": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     }
   }
