@@ -1529,7 +1529,7 @@
       },
       "9007a433-113c-4467-a4c1-45111a555323": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     }
   }
