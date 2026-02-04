@@ -1549,7 +1549,7 @@
       },
       "42f25ff5-49c7-4d8d-927f-dee6ee4f7ee9": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     }
   }
