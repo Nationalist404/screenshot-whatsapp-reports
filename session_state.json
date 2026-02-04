@@ -703,11 +703,11 @@
       },
       "cff84372-4aeb-4cc0-b3d9-e26652a48ec3": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       },
       "e6ff3521-0594-43c3-bad7-9845e89c5d4e": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     },
     "433688": {
