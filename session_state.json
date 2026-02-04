@@ -1613,7 +1613,7 @@
       },
       "0883cc77-bad4-42de-910f-ddbd2261286e": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     }
   }
