@@ -1617,7 +1617,7 @@
       },
       "83e590c7-34da-43c8-a1d5-54713a449bf6": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     }
   }
