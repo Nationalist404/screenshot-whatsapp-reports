@@ -803,6 +803,10 @@
       },
       "3e986ee3-a156-4055-987c-1ba677484c12": {
         "notified_start": true,
+        "notified_end": true
+      },
+      "d632dd17-3b93-4ee9-b620-026fae82068e": {
+        "notified_start": true,
         "notified_end": false
       }
     },
