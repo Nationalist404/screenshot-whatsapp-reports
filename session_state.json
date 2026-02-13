@@ -1905,7 +1905,7 @@
       },
       "bc4fefaa-06c0-49c2-99d3-410709c20a0e": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     }
   }
