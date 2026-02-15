@@ -963,6 +963,10 @@
       },
       "7ac6874c-a357-49b7-b3bb-435c33c8fb9d": {
         "notified_start": true,
+        "notified_end": true
+      },
+      "ebd076a0-c008-4609-812c-f76e786d9d2d": {
+        "notified_start": true,
         "notified_end": false
       }
     },
