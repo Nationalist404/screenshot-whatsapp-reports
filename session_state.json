@@ -2105,7 +2105,7 @@
       },
       "cb05b212-a122-4cbe-aaf5-7a6c000f53a9": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     }
   }
