@@ -2125,7 +2125,7 @@
       },
       "b80c09bb-4496-4d4b-8f85-79d724772b57": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     }
   }
