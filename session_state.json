@@ -1099,6 +1099,10 @@
       },
       "ba39beb5-604c-44a8-9dd6-18c7e988ba1c": {
         "notified_start": true,
+        "notified_end": true
+      },
+      "10b39a56-2a5a-4628-9b69-80838f2be722": {
+        "notified_start": true,
         "notified_end": false
       }
     },
