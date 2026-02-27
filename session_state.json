@@ -1211,6 +1211,10 @@
       },
       "6f3db6f3-c86a-41df-b1de-93c0ac6ebedb": {
         "notified_start": true,
+        "notified_end": true
+      },
+      "fd571200-f2bc-4cca-8cb3-7670d757fbb9": {
+        "notified_start": true,
         "notified_end": false
       }
     },
