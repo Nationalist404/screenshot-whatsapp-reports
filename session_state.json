@@ -2293,7 +2293,7 @@
       },
       "018add20-0bf1-4655-8501-8ee089b9e97e": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     }
   }
