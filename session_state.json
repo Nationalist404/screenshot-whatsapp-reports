@@ -60,6 +60,10 @@
       "d2860afe-47b6-2082-612b-5ec35c1c76f4": {
         "notified_start": true,
         "notified_end": true
+      },
+      "db005828-bde1-48f4-9073-315b29706c1d": {
+        "notified_start": true,
+        "notified_end": false
       }
     },
     "433688": {
