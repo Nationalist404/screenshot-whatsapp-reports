@@ -40,6 +40,14 @@
       "baefa3d3-8dcf-4505-9dae-c013dd3d68c5": {
         "notified_start": true,
         "notified_end": true
+      },
+      "18efa34b-9872-4e22-9df9-492ea7405742": {
+        "notified_start": true,
+        "notified_end": false
+      },
+      "86a24e5e-b7ed-4d71-935d-959eed72d072": {
+        "notified_start": true,
+        "notified_end": false
       }
     },
     "433688": {
