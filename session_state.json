@@ -99,6 +99,10 @@
       },
       "2277fd0b-27e5-4933-8516-2e1fe5a2e3a5": {
         "notified_start": true,
+        "notified_end": true
+      },
+      "36e84cc5-d63e-45e0-9e02-f84098c93ea1": {
+        "notified_start": true,
         "notified_end": false
       }
     },
