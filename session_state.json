@@ -120,6 +120,10 @@
       "d7c86bc9-deb6-4ca7-a81a-f9266bb4215c": {
         "notified_start": true,
         "notified_end": true
+      },
+      "24bd4403-d048-4e50-9734-6bd0f97badff": {
+        "notified_start": true,
+        "notified_end": false
       }
     },
     "433688": {
