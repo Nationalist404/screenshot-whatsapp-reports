@@ -87,6 +87,10 @@
       },
       "fd47e98f-67ed-4483-b88d-ae3950a59fb1": {
         "notified_start": true,
+        "notified_end": true
+      },
+      "2ed6d364-5cf3-4db2-a132-e54d472c04e4": {
+        "notified_start": true,
         "notified_end": false
       }
     },
