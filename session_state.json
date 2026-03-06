@@ -155,6 +155,10 @@
       },
       "88f72d3f-f555-449e-97f5-be1b9908c908": {
         "notified_start": true,
+        "notified_end": true
+      },
+      "823e0818-7970-42ea-97a3-a5e1dac105cf": {
+        "notified_start": true,
         "notified_end": false
       }
     },
