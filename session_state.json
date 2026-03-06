@@ -171,7 +171,7 @@
       },
       "1207f166-7dff-4226-9d35-8b374d0b2f3f": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     },
     "433688": {
@@ -189,7 +189,7 @@
       },
       "b714d49b-07c3-463a-aadc-d998419f8cec": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     }
   }
