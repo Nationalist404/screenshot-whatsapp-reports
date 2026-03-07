@@ -251,7 +251,7 @@
       },
       "4c9f1db9-54f5-42be-9b8b-90b7050d7e99": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       },
       "aabb87d3-764f-4c95-b079-95bd07f598cd": {
         "notified_start": true,
@@ -284,6 +284,14 @@
         "notified_end": true
       },
       "bac2e61b-8955-4626-bef8-872e17ca3692": {
+        "notified_start": true,
+        "notified_end": false
+      },
+      "8c31931c-00d1-470c-8f85-45b5c85539d9": {
+        "notified_start": true,
+        "notified_end": false
+      },
+      "75a5b29e-7589-4eef-bdf8-b0b859b87d8a": {
         "notified_start": true,
         "notified_end": false
       }
