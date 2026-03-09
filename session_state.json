@@ -371,6 +371,10 @@
       },
       "0e8193bd-499f-43c2-acc3-a1167dcc0a64": {
         "notified_start": true,
+        "notified_end": true
+      },
+      "b93e53a3-09fd-4115-ac42-168159b71843": {
+        "notified_start": true,
         "notified_end": false
       }
     },
