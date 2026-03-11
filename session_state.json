@@ -431,6 +431,10 @@
       },
       "ecc4fe30-d64c-47f1-b6fb-b4c8f552fb93": {
         "notified_start": true,
+        "notified_end": true
+      },
+      "41cee7f0-6f2c-4fc7-a673-44163c0c8c96": {
+        "notified_start": true,
         "notified_end": false
       }
     },
