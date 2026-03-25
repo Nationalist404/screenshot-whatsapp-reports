@@ -567,11 +567,11 @@
       },
       "5e18050f-1b31-4203-9eb0-5d08fac399b2": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       },
       "ee7e8f11-3145-4079-b601-02c6adc8ecbb": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       }
     },
     "433688": {
