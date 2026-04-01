@@ -635,6 +635,10 @@
       },
       "c8ba1daf-0986-47ff-94be-ad545e692386": {
         "notified_start": true,
+        "notified_end": true
+      },
+      "ef6b8124-95c8-4c97-8143-7e26833410c1": {
+        "notified_start": true,
         "notified_end": false
       }
     },
