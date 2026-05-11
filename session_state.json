@@ -1196,6 +1196,10 @@
       "23952313-b7d2-4d65-b58f-e4648fba37ee": {
         "notified_start": true,
         "notified_end": true
+      },
+      "6dce8c0b-bc0c-4867-a6e6-dfca69790429": {
+        "notified_start": true,
+        "notified_end": false
       }
     },
     "433688": {
