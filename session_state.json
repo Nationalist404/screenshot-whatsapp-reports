@@ -1175,9 +1175,13 @@
       },
       "bf8c988e-54dd-49fa-897e-908a27b8481e": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       },
       "ef41bca5-2f72-4a98-9f32-801be9ea0145": {
+        "notified_start": true,
+        "notified_end": true
+      },
+      "67e812d8-af8d-4dd6-b504-6d3ea2922bb5": {
         "notified_start": true,
         "notified_end": false
       }
