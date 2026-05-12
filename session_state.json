@@ -1223,9 +1223,13 @@
       },
       "a8edf612-2c02-4e34-a825-42b25a00ef62": {
         "notified_start": true,
-        "notified_end": false
+        "notified_end": true
       },
       "bd88faae-9044-4d4c-8605-5e19f7ec4545": {
+        "notified_start": true,
+        "notified_end": false
+      },
+      "a6d46ed3-bf9d-4144-9527-e4dbffeadd90": {
         "notified_start": true,
         "notified_end": false
       }
