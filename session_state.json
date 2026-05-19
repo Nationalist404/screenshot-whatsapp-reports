@@ -1319,6 +1319,10 @@
       },
       "c5634c1e-ade0-4913-baf5-3e4a831fa655": {
         "notified_start": true,
+        "notified_end": true
+      },
+      "aeab2ea7-65b9-4760-8444-6b88268db478": {
+        "notified_start": true,
         "notified_end": false
       }
     },
