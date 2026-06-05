@@ -1428,6 +1428,10 @@
       "afa9767a-8383-4b9c-bfba-83b03daba6e8": {
         "notified_start": true,
         "notified_end": true
+      },
+      "ca67942c-e569-4368-90c6-3fee1a41dd98": {
+        "notified_start": true,
+        "notified_end": false
       }
     },
     "433688": {
